@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Location extends Model
+{
+    protected $fillable = [
+        'name',
+        'address',
+        'hall',
+    ];
+
+    public function games()
+    {
+        return $this->hasMany(Game::class);
+    }
+}
