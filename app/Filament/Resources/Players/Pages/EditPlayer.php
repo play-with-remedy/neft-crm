@@ -15,8 +15,30 @@ class EditPlayer extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            ViewAction::make(),
-            DeleteAction::make(),
+            ViewAction::make()
+                ->label('Детали'),
+            DeleteAction::make()
+                ->label('Удалить')
+                ->modalHeading('Удаление игрока')
+                ->modalDescription('Вы уверены, что хотите удалить игрока?')
+                ->modalSubmitActionLabel('Удалить')
+                ->modalCancelActionLabel('Отмена'),
         ];
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction()
+                ->label('Сохранить'),
+
+            $this->getCancelFormAction()
+                ->label('Отмена'),
+        ];
+    }
+
+    public function getTitle(): string
+    {
+        return $this->record->nickname;
     }
 }

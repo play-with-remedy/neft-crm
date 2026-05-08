@@ -10,10 +10,17 @@ class ListPaymentTypes extends ListRecords
 {
     protected static string $resource = PaymentTypeResource::class;
 
+    protected static ?string $title = 'Типы оплаты';
+    protected static ?string $breadcrumb = 'Список';
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Новый тип оплаты')
+                ->modalHeading('Новый тип оплаты')
+                ->modalSubmitActionLabel('Создать')
+                ->modalCancelActionLabel('Отмена')
         ];
     }
 }

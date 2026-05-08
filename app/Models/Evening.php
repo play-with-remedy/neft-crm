@@ -10,7 +10,6 @@ class Evening extends Model
 {
     protected $fillable = [
         'played_at',
-        'location_id',
         'evening_type_id',
         'project_id',
         'other_expenses',
@@ -20,11 +19,6 @@ class Evening extends Model
         'played_at' => 'datetime',
         'other_expenses' => 'integer',
     ];
-
-    public function location(): BelongsTo
-    {
-        return $this->belongsTo(Location::class);
-    }
 
     public function eveningType(): BelongsTo
     {

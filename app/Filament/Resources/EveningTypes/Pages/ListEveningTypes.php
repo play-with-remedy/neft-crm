@@ -10,10 +10,17 @@ class ListEveningTypes extends ListRecords
 {
     protected static string $resource = EveningTypeResource::class;
 
+    protected static ?string $title = 'Типы проектов';
+    protected static ?string $breadcrumb = 'Список';
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Новый тип проекта')
+                ->modalHeading('Новый тип проекта')
+                ->modalSubmitActionLabel('Создать')
+                ->modalCancelActionLabel('Отмена')
         ];
     }
 }

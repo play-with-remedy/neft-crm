@@ -15,20 +15,17 @@ class EveningInfolist
             ->components([
                 Section::make('Основное')
                     ->schema([
-                        TextEntry::make('played_at')
-                            ->label('Дата проведения')
-                            ->dateTime(),
-
-                        TextEntry::make('location.name')
-                            ->label('Локация'),
+                        TextEntry::make('project.name')
+                            ->label('Проект')
+                            ->placeholder('Не указан'),
 
                         TextEntry::make('eveningType.name')
                             ->label('Тип вечера')
                             ->placeholder('Не указан'),
 
-                        TextEntry::make('project.name')
-                            ->label('Проект')
-                            ->placeholder('Не указан'),
+                        TextEntry::make('played_at')
+                            ->label('Дата проведения')
+                            ->dateTime(),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
@@ -66,7 +63,7 @@ class EveningInfolist
                 Section::make('Расходы')
                     ->schema([
                         RepeatableEntry::make('expenses')
-                            ->label('')
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('category.name')
                                     ->label('Статья расходов'),
@@ -77,12 +74,14 @@ class EveningInfolist
                             ])
                             ->columns(2),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Команда вечера')
                     ->schema([
                         RepeatableEntry::make('staff')
-                            ->label('')
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('host.nickname')
                                     ->label('Человек'),
@@ -101,12 +100,14 @@ class EveningInfolist
                             ])
                             ->columns(3),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Оплаты по типам')
                     ->schema([
                         RepeatableEntry::make('payments_by_type')
-                            ->label('')
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('name')
                                     ->label('Тип оплаты'),
@@ -117,12 +118,14 @@ class EveningInfolist
                             ])
                             ->columns(2),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Участники')
                     ->schema([
                         RepeatableEntry::make('participants')
-                            ->label('')
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('player.nickname')
                                     ->label('Игрок'),
@@ -148,6 +151,8 @@ class EveningInfolist
                             ])
                             ->columns(6),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
             ]);
     }

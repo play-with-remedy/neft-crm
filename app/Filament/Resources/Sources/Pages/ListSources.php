@@ -10,10 +10,17 @@ class ListSources extends ListRecords
 {
     protected static string $resource = SourceResource::class;
 
+    protected static ?string $title = 'Источники';
+    protected static ?string $breadcrumb = 'Список';
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Новый источник')
+                ->modalHeading('Новый источник')
+                ->modalSubmitActionLabel('Создать')
+                ->modalCancelActionLabel('Отмена')
         ];
     }
 }

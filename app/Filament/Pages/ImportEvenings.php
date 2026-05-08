@@ -6,7 +6,6 @@ use App\Models\Evening;
 use App\Models\EveningType;
 use App\Models\ExpenseCategory;
 use App\Models\Host;
-use App\Models\Location;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
@@ -44,7 +43,6 @@ class ImportEvenings extends Page implements HasForms
     private const HEADERS = [
         'evening_id' => 'ID вечера',
         'played_at' => 'Дата проведения',
-        'location' => 'Локация',
         'evening_type' => 'Тип вечера',
         'project' => 'Проект',
         'record_type' => 'Тип записи',
@@ -203,7 +201,6 @@ class ImportEvenings extends Page implements HasForms
 
             $eveningData = [
                 'played_at' => $playedAt,
-                'location_id' => $this->resolveLocation($firstRow[self::HEADERS['location']] ?? null)?->id,
                 'evening_type_id' => $this->resolveEveningType($firstRow[self::HEADERS['evening_type']] ?? null)?->id,
                 'project_id' => $this->resolveProject($firstRow[self::HEADERS['project']] ?? null)?->id,
             ];
@@ -403,17 +400,6 @@ class ImportEvenings extends Page implements HasForms
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    private function resolveLocation(?string $name): ?Location
-    {
-        $name = trim((string) $name);
-
-        if ($name === '') {
-            return null;
-        }
-
-        return Location::firstOrCreate(['name' => $name]);
     }
 
     private function resolveEveningType(?string $name): ?EveningType

@@ -15,6 +15,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class EveningResource extends Resource
@@ -28,8 +30,6 @@ class EveningResource extends Resource
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
-
-    protected static ?string $recordTitleAttribute = 'played_at';
 
     public static function form(Schema $schema): Schema
     {

@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\PaymentTypes\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -17,21 +17,19 @@ class PaymentTypesTable
             ->columns([
                 TextColumn::make('type')
                     ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Редактировать')
+                    ->modalHeading('Редактирование типа оплаты')
+                    ->modalSubmitActionLabel('Сохранить')
+                    ->modalCancelActionLabel('Отмена'),
+                DeleteAction::make()
+                    ->label('Удалить')
+                    ->modalHeading('Удаление типа оплаты')
+                    ->modalDescription('Вы уверены, что хотите удалить тип оплаты?')
+                    ->modalSubmitActionLabel('Удалить')
+                    ->modalCancelActionLabel('Отмена')
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

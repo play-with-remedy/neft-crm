@@ -53,7 +53,6 @@ class ExportEvenings extends Page
 
             Evening::query()
                 ->with([
-                    'location',
                     'eveningType',
                     'project',
                     'expenses.category',
@@ -68,7 +67,6 @@ class ExportEvenings extends Page
                             fputcsv($handle, [
                                 $evening->id,
                                 $this->formatDateTime($evening->played_at),
-                                $evening->location?->name,
                                 $evening->eveningType?->name,
                                 $evening->project?->name,
                                 'Команда',
@@ -93,7 +91,6 @@ class ExportEvenings extends Page
                             fputcsv($handle, [
                                 $evening->id,
                                 $this->formatDateTime($evening->played_at),
-                                $evening->location?->name,
                                 $evening->eveningType?->name,
                                 $evening->project?->name,
                                 'Игрок',
@@ -114,7 +111,6 @@ class ExportEvenings extends Page
                             fputcsv($handle, [
                                 $evening->id,
                                 $this->formatDateTime($evening->played_at),
-                                $evening->location?->name,
                                 $evening->eveningType?->name,
                                 $evening->project?->name,
                                 'Расход',

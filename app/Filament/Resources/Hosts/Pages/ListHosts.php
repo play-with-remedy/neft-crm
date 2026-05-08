@@ -10,10 +10,17 @@ class ListHosts extends ListRecords
 {
     protected static string $resource = HostResource::class;
 
+    protected static ?string $title = 'Админы';
+    protected static ?string $breadcrumb = 'Список';
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Новый админ')
+                ->modalHeading('Новый админ')
+                ->modalSubmitActionLabel('Создать')
+                ->modalCancelActionLabel('Отмена')
         ];
     }
 }

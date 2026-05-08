@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Evenings\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -19,15 +20,11 @@ class EveningForm
             ->components([
                 Section::make('Основное')
                     ->schema([
-                        DateTimePicker::make('played_at')
-                            ->label('Дата проведения')
-                            ->required(),
-
-                        Select::make('location_id')
-                            ->label('Локация')
-                            ->relationship('location', 'name')
+                        Select::make('project_id')
+                            ->label('Проект')
+                            ->relationship('project', 'name')
                             ->preload()
-                            ->required(),
+                            ->nullable(),
 
                         Select::make('evening_type_id')
                             ->label('Тип вечера')
@@ -35,11 +32,9 @@ class EveningForm
                             ->preload()
                             ->nullable(),
 
-                        Select::make('project_id')
-                            ->label('Проект')
-                            ->relationship('project', 'name')
-                            ->preload()
-                            ->nullable(),
+                        DatePicker::make('played_at')
+                            ->label('Дата проведения')
+                            ->required(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -48,46 +43,52 @@ class EveningForm
                     ->schema([
                         Repeater::make('expenses')
                             ->relationship()
-                            ->label('')
+                            ->hiddenLabel()
+                            ->table([
+                                TableColumn::make('Статья расходов'),
+                                TableColumn::make('Сумма')->width('160px'),
+                            ])
                             ->schema([
                                 Select::make('expense_category_id')
-                                    ->label('Статья расходов')
+                                    ->hiddenLabel()
                                     ->relationship('category', 'name')
                                     ->preload()
                                     ->required(),
 
                                 TextInput::make('amount')
-                                    ->label('Сумма')
+                                    ->hiddenLabel()
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
                                     ->required(),
                             ])
-                            ->columns(2)
-                            ->columnSpanFull()
+                            ->compact()
                             ->addActionLabel('Добавить расход')
-                            ->deleteAction(
-                                fn ($action) => $action
-                                    ->icon('heroicon-m-x-mark')
-                                    ->label('')
-                            ),
+                            ->columnSpanFull(),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Команда вечера')
                     ->schema([
                         Repeater::make('staff')
                             ->relationship()
-                            ->label('')
+                            ->hiddenLabel()
+                            ->table([
+                                TableColumn::make('Человек'),
+                                TableColumn::make('Роль')->width('180px'),
+                                TableColumn::make('Зарплата')->width('160px'),
+                            ])
                             ->schema([
                                 Select::make('host_id')
-                                    ->label('Человек')
+                                    ->hiddenLabel()
                                     ->relationship('host', 'nickname')
                                     ->preload()
                                     ->required(),
 
                                 Select::make('role')
-                                    ->label('Роль')
+                                    ->hiddenLabel()
                                     ->options([
                                         'host' => 'Ведущий',
                                         'manager' => 'Админ',
@@ -95,71 +96,74 @@ class EveningForm
                                     ->required(),
 
                                 TextInput::make('salary')
-                                    ->label('Зарплата')
+                                    ->hiddenLabel()
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
                                     ->required(),
                             ])
-                            ->columns(3)
-                            ->columnSpanFull()
-                            ->deleteAction(
-                                fn ($action) => $action
-                                    ->icon('heroicon-m-x-mark')
-                                    ->label('')
-                            ),
+                            ->compact()
+                            ->addActionLabel('Добавить человека')
+                            ->columnSpanFull(),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Участники')
                     ->schema([
                         Repeater::make('participants')
                             ->relationship()
-                            ->label('')
+                            ->hiddenLabel()
+                            ->table([
+                                TableColumn::make('Игрок'),
+                                TableColumn::make('Тип оплаты')->width('180px'),
+                                TableColumn::make('Оплата')->width('140px'),
+                                TableColumn::make('Новый')->width('100px'),
+                                TableColumn::make('Полная')->width('100px'),
+                                TableColumn::make('Примечание'),
+                            ])
                             ->schema([
                                 Select::make('player_id')
-                                    ->label('Игрок')
+                                    ->hiddenLabel()
                                     ->relationship('player', 'nickname')
                                     ->searchable()
                                     ->preload(false)
                                     ->required(),
 
                                 Select::make('payment_type_id')
-                                    ->label('Тип оплаты')
+                                    ->hiddenLabel()
                                     ->relationship('paymentType', 'type')
-                                    ->required()
-                                    ->preload(),
+                                    ->preload()
+                                    ->required(),
 
                                 TextInput::make('paid_amount')
-                                    ->label('Оплата')
+                                    ->hiddenLabel()
                                     ->numeric()
                                     ->default(0)
                                     ->required(),
 
                                 Toggle::make('is_new_player')
-                                    ->label('Новый игрок')
+                                    ->hiddenLabel()
                                     ->default(false)
                                     ->inline(false),
 
                                 Toggle::make('is_full_payment')
-                                    ->label('Полная оплата')
+                                    ->hiddenLabel()
                                     ->default(true)
                                     ->inline(false),
 
                                 Textarea::make('note')
-                                    ->label('Примечание')
-                                    ->rows(2)
-                                    ->placeholder('Комментарий по оплате / игроку')
-                                    ->columnSpan(5),
+                                    ->hiddenLabel()
+                                    ->rows(1)
+                                    ->placeholder('Комментарий'),
                             ])
-                            ->columns(5)
-                            ->columnSpanFull()
-                            ->deleteAction(
-                                fn ($action) => $action
-                                    ->icon('heroicon-m-x-mark')
-                                    ->label('')
-                            ),
+                            ->compact()
+                            ->addActionLabel('Добавить участника')
+                            ->columnSpanFull(),
                     ])
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
             ]);
     }

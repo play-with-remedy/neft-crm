@@ -18,4 +18,9 @@ class ViewPlayer extends ViewRecord
                 ->label('Редактировать'),
         ];
     }
+
+    public function getTitle(): string
+    {
+        return $this->record->nickname;
+    }
 }

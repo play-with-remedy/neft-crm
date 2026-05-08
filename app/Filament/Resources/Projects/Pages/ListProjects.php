@@ -10,10 +10,18 @@ class ListProjects extends ListRecords
 {
     protected static string $resource = ProjectResource::class;
 
+    protected static ?string $title = 'Проекты';
+    protected static ?string $breadcrumb = 'Список';
+
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Новый проект')
+                ->modalHeading('Новый проект')
+                ->modalSubmitActionLabel('Создать')
+                ->modalCancelActionLabel('Отмена')
         ];
     }
 }

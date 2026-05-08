@@ -15,31 +15,54 @@ class EveningsTable
     {
         return $table
             ->columns([
-                TextColumn::make('index')
-                    ->label('#')
-                    ->rowIndex(),
-
-                TextColumn::make('played_at')
-                    ->label('Дата')
-                    ->dateTime('d.m.Y H:i')
-                    ->sortable(),
-
-                TextColumn::make('location.name')
-                    ->label('Локация')
+                TextColumn::make('project.name')
+                    ->label('Проект')
+                    ->alignCenter()
                     ->searchable(),
 
                 TextColumn::make('eveningType.name')
                     ->label('Тип вечера')
-                    ->sortable()
-                    ->searchable(),
+                    ->alignCenter(),
 
-                TextColumn::make('participants_count')
-                    ->label('Игроков')
-                    ->counts('participants'),
+                TextColumn::make('played_at')
+                    ->label('Дата')
+                    ->date('M d, Y')
+                    ->alignCenter()
+                    ->sortable(),
 
                 TextColumn::make('participants_sum_paid_amount')
-                    ->label('Выручка')
+                    ->label('Оплата игроков')
+                    ->numeric(decimalPlaces: 0)
+                    ->suffix(' BYN')
+                    ->alignCenter()
                     ->sum('participants', 'paid_amount'),
+
+                TextColumn::make('staff_sum_salary')
+                    ->label('Затраты Команды')
+                    ->numeric(decimalPlaces: 0)
+                    ->suffix(' BYN')
+                    ->alignCenter()
+                    ->sum('staff', 'salary'),
+
+                TextColumn::make('expenses_sum_amount')
+                    ->label('Прочие расходы')
+                    ->numeric(decimalPlaces: 0)
+                    ->suffix(' BYN')
+                    ->alignCenter()
+                    ->sum('expenses', 'amount'),
+
+                TextColumn::make('profit')
+                    ->label('Выручка')
+                    ->numeric(decimalPlaces: 0)
+                    ->alignCenter()
+                    ->suffix(' BYN')
+                    ->state(function ($record) {
+                        $participants = $record->participants()->sum('paid_amount');
+                        $staff = $record->staff()->sum('salary');
+                        $expenses = $record->expenses()->sum('amount');
+
+                        return $participants - $staff - $expenses;
+                    }),
             ])
             ->defaultSort('played_at', 'desc')
             ->recordActions([

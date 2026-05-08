@@ -12,10 +12,6 @@ return new class extends Migration
             $table->id();
             $table->timestamp('played_at');
 
-            $table->foreignId('location_id')
-                ->constrained()
-                ->nullOnDelete();
-
             $table->foreignId('evening_type_id')
                 ->nullable()
                 ->constrained('evening_types')

@@ -2,12 +2,8 @@
 
 namespace App\Filament\Resources\PaymentTypes;
 
-use App\Filament\Resources\PaymentTypes\Pages\CreatePaymentType;
-use App\Filament\Resources\PaymentTypes\Pages\EditPaymentType;
 use App\Filament\Resources\PaymentTypes\Pages\ListPaymentTypes;
-use App\Filament\Resources\PaymentTypes\Pages\ViewPaymentType;
 use App\Filament\Resources\PaymentTypes\Schemas\PaymentTypeForm;
-use App\Filament\Resources\PaymentTypes\Schemas\PaymentTypeInfolist;
 use App\Filament\Resources\PaymentTypes\Tables\PaymentTypesTable;
 use App\Models\PaymentType;
 use BackedEnum;
@@ -24,6 +20,11 @@ class PaymentTypeResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'type';
+
+    protected static ?string $navigationLabel = 'Типы оплаты';
+    protected static ?string $modelLabel = 'Тип оплаты';
+    protected static ?string $pluralModelLabel = 'Типы оплаты';
+
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
     protected static ?int $navigationSort = 1;
 
@@ -32,30 +33,15 @@ class PaymentTypeResource extends Resource
         return PaymentTypeForm::configure($schema);
     }
 
-    public static function infolist(Schema $schema): Schema
-    {
-        return PaymentTypeInfolist::configure($schema);
-    }
-
     public static function table(Table $table): Table
     {
         return PaymentTypesTable::configure($table);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => ListPaymentTypes::route('/'),
-            'create' => CreatePaymentType::route('/create'),
-            'view' => ViewPaymentType::route('/{record}'),
-            'edit' => EditPaymentType::route('/{record}/edit'),
         ];
     }
 }
