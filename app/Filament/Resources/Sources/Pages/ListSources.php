@@ -20,6 +20,7 @@ class ListSources extends ListRecords
                 ->label('Новый источник')
                 ->modalHeading('Новый источник')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

@@ -17,16 +17,14 @@ class PaymentTypeResource extends Resource
 {
     protected static ?string $model = PaymentType::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
     protected static ?string $recordTitleAttribute = 'type';
-
     protected static ?string $navigationLabel = 'Типы оплаты';
     protected static ?string $modelLabel = 'Тип оплаты';
     protected static ?string $pluralModelLabel = 'Типы оплаты';
-
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 6;
 
     public static function form(Schema $schema): Schema
     {

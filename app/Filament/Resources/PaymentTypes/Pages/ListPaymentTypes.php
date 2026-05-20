@@ -20,6 +20,7 @@ class ListPaymentTypes extends ListRecords
                 ->label('Новый тип оплаты')
                 ->modalHeading('Новый тип оплаты')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

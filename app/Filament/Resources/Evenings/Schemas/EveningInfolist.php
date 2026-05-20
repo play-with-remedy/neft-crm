@@ -91,6 +91,7 @@ class EveningInfolist
                                     ->formatStateUsing(fn ($state) => match ($state) {
                                         'host' => 'Ведущий',
                                         'manager' => 'Админ',
+                                        'supervisor' => 'Супервайзер',
                                         default => $state,
                                     }),
 

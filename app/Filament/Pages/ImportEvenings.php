@@ -134,6 +134,7 @@ class ImportEvenings extends Page implements HasForms
         $headers = array_map(function ($header) {
             $header = trim($header);
             $header = preg_replace('/^\xEF\xBB\xBF/', '', $header);
+
             return trim($header, "\"' \t\n\r\0\x0B");
         }, $headers);
 
@@ -164,6 +165,7 @@ class ImportEvenings extends Page implements HasForms
             if (count($row) !== count($headers)) {
                 $skipped++;
                 $this->addSkipped($skippedList, '', 'неверное количество колонок');
+
                 continue;
             }
 
@@ -174,6 +176,7 @@ class ImportEvenings extends Page implements HasForms
             if ($eveningId === '') {
                 $skipped++;
                 $this->addSkipped($skippedList, '', 'не указан ID вечера');
+
                 continue;
             }
 
@@ -196,6 +199,7 @@ class ImportEvenings extends Page implements HasForms
             if (! $playedAt) {
                 $skipped++;
                 $this->addSkipped($skippedList, (string) $eveningId, 'неверная дата проведения');
+
                 continue;
             }
 
@@ -236,7 +240,7 @@ class ImportEvenings extends Page implements HasForms
             }
         }
 
-        $this->syncEveningsSequence();
+        $this->syncEveningsAutoIncrement();
 
         $this->result = [
             'created_evenings' => $createdEvenings,
@@ -264,6 +268,7 @@ class ImportEvenings extends Page implements HasForms
         if ($hostName === '') {
             $skipped++;
             $this->addSkipped($skippedList, (string) $evening->id, 'пустое имя человека в команде');
+
             return 0;
         }
 
@@ -272,6 +277,7 @@ class ImportEvenings extends Page implements HasForms
         if (! $host) {
             $skipped++;
             $this->addSkipped($skippedList, $hostName, 'человек команды не найден');
+
             return 0;
         }
 
@@ -280,12 +286,14 @@ class ImportEvenings extends Page implements HasForms
         $role = match ($roleRaw) {
             'Ведущий' => 'host',
             'Админ' => 'manager',
+            'Супервайзер' => 'supervisor',
             default => null,
         };
 
         if (! $role) {
             $skipped++;
             $this->addSkipped($skippedList, $hostName, "неверная роль команды ({$roleRaw})");
+
             return 0;
         }
 
@@ -305,6 +313,7 @@ class ImportEvenings extends Page implements HasForms
         if ($playerName === '') {
             $skipped++;
             $this->addSkipped($skippedList, (string) $evening->id, 'пустой ник игрока');
+
             return 0;
         }
 
@@ -313,6 +322,7 @@ class ImportEvenings extends Page implements HasForms
         if (! $player) {
             $skipped++;
             $this->addSkipped($skippedList, $playerName, 'игрок не найден');
+
             return 0;
         }
 
@@ -326,6 +336,7 @@ class ImportEvenings extends Page implements HasForms
             if (! $paymentType) {
                 $skipped++;
                 $this->addSkipped($skippedList, $playerName, "тип оплаты не найден ({$paymentTypeName})");
+
                 return 0;
             }
         }
@@ -355,6 +366,7 @@ class ImportEvenings extends Page implements HasForms
         if (! $category) {
             $skipped++;
             $this->addSkipped($skippedList, $categoryName, 'статья расхода не найдена');
+
             return 0;
         }
 
@@ -410,7 +422,9 @@ class ImportEvenings extends Page implements HasForms
             return null;
         }
 
-        return EveningType::firstOrCreate(['name' => $name]);
+        return EveningType::firstOrCreate([
+            'name' => $name,
+        ]);
     }
 
     private function resolveProject(?string $name): ?Project
@@ -421,17 +435,16 @@ class ImportEvenings extends Page implements HasForms
             return null;
         }
 
-        return Project::firstOrCreate(['name' => $name]);
+        return Project::firstOrCreate([
+            'name' => $name,
+        ]);
     }
 
-    private function syncEveningsSequence(): void
+    private function syncEveningsAutoIncrement(): void
     {
-        DB::statement("
-            SELECT setval(
-                pg_get_serial_sequence('evenings', 'id'),
-                COALESCE((SELECT MAX(id) FROM evenings), 1)
-            )
-        ");
+        $nextId = ((int) DB::table('evenings')->max('id')) + 1;
+
+        DB::statement("ALTER TABLE evenings AUTO_INCREMENT = {$nextId}");
     }
 
     private function addSkipped(array &$skippedList, string $item, string $reason): void
@@ -445,7 +458,12 @@ class ImportEvenings extends Page implements HasForms
     private function skipUnknownType(int &$skipped, array &$skippedList, string|int $eveningId, string $recordType): void
     {
         $skipped++;
-        $this->addSkipped($skippedList, (string) $eveningId, "неизвестный тип записи ({$recordType})");
+
+        $this->addSkipped(
+            $skippedList,
+            (string) $eveningId,
+            "неизвестный тип записи ({$recordType})"
+        );
     }
 
     private function bool(?string $value): bool

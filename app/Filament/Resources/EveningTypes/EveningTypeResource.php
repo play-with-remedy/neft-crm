@@ -20,16 +20,13 @@ class EveningTypeResource extends Resource
 {
     protected static ?string $model = EveningType::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMoon;
     protected static ?string $recordTitleAttribute = 'name';
-
     protected static ?string $navigationLabel = 'Типы вечера';
     protected static ?string $modelLabel = 'Тип вечера';
     protected static ?string $pluralModelLabel = 'Типы вечера';
-
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {

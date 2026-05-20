@@ -20,6 +20,7 @@ class ListEveningTypes extends ListRecords
                 ->label('Новый тип проекта')
                 ->modalHeading('Новый тип проекта')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

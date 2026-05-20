@@ -17,17 +17,14 @@ class ProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolder;
 
     protected static ?string $recordTitleAttribute = 'name';
-
     protected static ?string $navigationLabel = 'Проекты';
     protected static ?string $modelLabel = 'Проект';
     protected static ?string $pluralModelLabel = 'Проекты';
-
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 6;
-
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {

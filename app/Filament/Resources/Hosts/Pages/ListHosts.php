@@ -20,6 +20,7 @@ class ListHosts extends ListRecords
                 ->label('Новый админ')
                 ->modalHeading('Новый админ')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

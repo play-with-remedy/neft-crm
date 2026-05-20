@@ -17,15 +17,14 @@ class SourceResource extends Resource
 {
     protected static ?string $model = Source::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
 
     protected static ?string $navigationLabel = 'Источники';
     protected static ?string $modelLabel = 'Источник';
     protected static ?string $pluralModelLabel = 'Источники';
     protected static ?string $recordTitleAttribute = 'name';
-
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {

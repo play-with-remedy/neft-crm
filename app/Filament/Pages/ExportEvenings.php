@@ -74,6 +74,7 @@ class ExportEvenings extends Page
                                 match ($staff->role) {
                                     'host' => 'Ведущий',
                                     'manager' => 'Админ',
+                                    'supervisor' => 'Супервайзер',
                                     default => $staff->role,
                                 },
                                 $staff->salary,

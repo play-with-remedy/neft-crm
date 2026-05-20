@@ -92,6 +92,7 @@ class EveningForm
                                     ->options([
                                         'host' => 'Ведущий',
                                         'manager' => 'Админ',
+                                        'supervisor' => 'Супервайзер',
                                     ])
                                     ->required(),
 

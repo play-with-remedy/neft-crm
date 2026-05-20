@@ -21,6 +21,7 @@ class ListProjects extends ListRecords
                 ->label('Новый проект')
                 ->modalHeading('Новый проект')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

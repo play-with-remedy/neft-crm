@@ -17,16 +17,15 @@ class ExpenseCategoryResource extends Resource
 {
     protected static ?string $model = ExpenseCategory::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 
     protected static ?string $navigationLabel = 'Статьи расходов';
     protected static ?string $modelLabel = 'Статья расходов';
     protected static ?string $pluralModelLabel = 'Статьи расходов';
-
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

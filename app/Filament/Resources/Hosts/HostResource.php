@@ -19,13 +19,13 @@ class HostResource extends Resource
 {
     protected static ?string $model = Host::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
     protected static ?string $navigationLabel = 'Админы';
     protected static ?string $modelLabel = 'Админ';
     protected static ?string $pluralModelLabel = 'Админы';
     protected static ?string $recordTitleAttribute = 'nickname';
     protected static UnitEnum|string|null $navigationGroup = 'Служебные данные';
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

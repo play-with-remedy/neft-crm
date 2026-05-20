@@ -21,6 +21,7 @@ class ListExpenseCategories extends ListRecords
                 ->label('Новая статья расходов')
                 ->modalHeading('Новыя статья расходов')
                 ->modalSubmitActionLabel('Создать')
+                ->createAnother(false)
                 ->modalCancelActionLabel('Отмена')
         ];
     }

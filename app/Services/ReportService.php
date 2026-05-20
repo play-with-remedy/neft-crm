@@ -12,11 +12,11 @@ class ReportService
         return Evening::query()
             ->join('evening_participants', 'evenings.id', '=', 'evening_participants.evening_id')
             ->selectRaw("
-                DATE_TRUNC('month', evenings.played_at) as month,
+                DATE_FORMAT(evenings.played_at, '%Y-%m-01') as month,
                 SUM(evening_participants.paid_amount) as total_revenue
             ")
-            ->groupByRaw("DATE_TRUNC('month', evenings.played_at)")
-            ->orderByRaw("DATE_TRUNC('month', evenings.played_at) DESC")
+            ->groupByRaw("DATE_FORMAT(evenings.played_at, '%Y-%m-01')")
+            ->orderByRaw("DATE_FORMAT(evenings.played_at, '%Y-%m-01') DESC")
             ->get();
     }
 
@@ -30,7 +30,7 @@ class ReportService
                 players.nickname,
                 players.first_name,
                 players.last_name,
-                DATE_TRUNC('month', evenings.played_at) as month,
+                DATE_FORMAT(evenings.played_at, '%Y-%m-01') as month,
                 SUM(evening_participants.paid_amount) as total_paid
             ")
             ->groupByRaw("
@@ -38,9 +38,9 @@ class ReportService
                 players.nickname,
                 players.first_name,
                 players.last_name,
-                DATE_TRUNC('month', evenings.played_at)
+                DATE_FORMAT(evenings.played_at, '%Y-%m-01')
             ")
-            ->orderByRaw("DATE_TRUNC('month', evenings.played_at) DESC")
+            ->orderByRaw("DATE_FORMAT(evenings.played_at, '%Y-%m-01') DESC")
             ->orderBy('players.nickname')
             ->get();
     }
