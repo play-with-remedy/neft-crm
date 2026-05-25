@@ -73,7 +73,8 @@ class ExportEvenings extends Page
                                 $staff->host?->nickname,
                                 match ($staff->role) {
                                     'host' => 'Ведущий',
-                                    'manager' => 'Админ',
+                                    'admin' => 'Админ',
+                                    'manager' => 'Менджер',
                                     'supervisor' => 'Супервайзер',
                                     default => $staff->role,
                                 },

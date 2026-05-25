@@ -91,7 +91,8 @@ class EveningForm
                                     ->hiddenLabel()
                                     ->options([
                                         'host' => 'Ведущий',
-                                        'manager' => 'Админ',
+                                        'admin' => 'Админ',
+                                        'manager' => 'Менджер',
                                         'supervisor' => 'Супервайзер',
                                     ])
                                     ->required(),
@@ -111,11 +112,12 @@ class EveningForm
                     ->collapsed()
                     ->columnSpanFull(),
 
-                Section::make('Участники')
+                Section::make(fn ($get) => 'Участники: ' . count($get('participants') ?? []))
                     ->schema([
                         Repeater::make('participants')
                             ->relationship()
                             ->hiddenLabel()
+                            ->itemNumbers()
                             ->table([
                                 TableColumn::make('Игрок'),
                                 TableColumn::make('Тип оплаты')->width('180px'),

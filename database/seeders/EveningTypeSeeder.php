@@ -10,9 +10,26 @@ class EveningTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['name' => 'Спорт', 'description' => 'Вечер по правилам спорт'],
-            ['name' => 'Турнир', 'description' => 'Турнирный формат'],
-            ['name' => 'Полуспорт', 'description' => 'Вечер по правилам полуспорт'],
+            [
+                'name' => 'Спорт',
+                'description' => 'Спортивная мафия',
+            ],
+            [
+                'name' => 'Полуспорт',
+                'description' => 'Полуспортивная мафия',
+            ],
+            [
+                'name' => 'Обучение',
+                'description' => 'Обучающие проекты',
+            ],
+            [
+                'name' => 'Турниры',
+                'description' => 'ММТ',
+            ],
+            [
+                'name' => 'Другое',
+                'description' => '',
+            ],
         ];
 
         foreach ($types as $type) {

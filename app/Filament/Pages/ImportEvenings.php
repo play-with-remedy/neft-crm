@@ -285,7 +285,8 @@ class ImportEvenings extends Page implements HasForms
 
         $role = match ($roleRaw) {
             'Ведущий' => 'host',
-            'Админ' => 'manager',
+            'Менеджер' => 'manager',
+            'Администратор' => 'admin',
             'Супервайзер' => 'supervisor',
             default => null,
         };

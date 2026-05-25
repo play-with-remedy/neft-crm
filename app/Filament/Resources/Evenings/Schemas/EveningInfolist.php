@@ -90,7 +90,8 @@ class EveningInfolist
                                     ->label('Роль')
                                     ->formatStateUsing(fn ($state) => match ($state) {
                                         'host' => 'Ведущий',
-                                        'manager' => 'Админ',
+                                        'admin' => 'Админ',
+                                        'manager' => 'Менджер',
                                         'supervisor' => 'Супервайзер',
                                         default => $state,
                                     }),
@@ -123,7 +124,7 @@ class EveningInfolist
                     ->collapsed()
                     ->columnSpanFull(),
 
-                Section::make('Участники')
+                Section::make(fn ($record) => 'Участники: ' . ($record?->participants?->count() ?? 0))
                     ->schema([
                         RepeatableEntry::make('participants')
                             ->hiddenLabel()
