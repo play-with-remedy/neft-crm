@@ -60,6 +60,7 @@ class AdminPanelProvider extends PanelProvider
                 'Отчеты',
                 'Синхронизация',
                 'Системная таблица',
+                'Служебные данные',
             ]);
     }
 }

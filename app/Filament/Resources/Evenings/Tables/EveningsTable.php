@@ -8,6 +8,10 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class EveningsTable
 {
@@ -15,18 +19,19 @@ class EveningsTable
     {
         return $table
             ->columns([
+                TextColumn::make('played_at')
+                    ->label('Дата')
+                    ->date('d.m.Y')
+                    ->alignCenter()
+                    ->sortable(),
+
                 TextColumn::make('project.name')
                     ->label('Проект')
                     ->alignCenter()
-                    ->searchable(),
+                    ->sortable(),
 
                 TextColumn::make('eveningType.name')
                     ->label('Тип вечера')
-                    ->alignCenter(),
-
-                TextColumn::make('played_at')
-                    ->label('Дата')
-                    ->date('M d, Y')
                     ->alignCenter()
                     ->sortable(),
 
@@ -64,7 +69,39 @@ class EveningsTable
                         return $participants - $staff - $expenses;
                     }),
             ])
-            ->defaultSort('played_at', 'desc')
+            ->filters([
+                Filter::make('played_at')
+                    ->label('Период')
+                    ->form([
+                        DatePicker::make('from')
+                            ->label('С даты'),
+
+                        DatePicker::make('until')
+                            ->label('По дату'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('played_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('played_at', '<=', $date),
+                            );
+                    }),
+
+                SelectFilter::make('evening_type_id')
+                    ->label('Тип вечера')
+                    ->relationship('eveningType', 'name')
+                    ->preload(),
+
+                SelectFilter::make('project_id')
+                    ->label('Проект')
+                    ->relationship('project', 'name')
+                    ->preload(),
+            ])
+            ->defaultSort('played_at', 'asc')
             ->recordActions([
                 ViewAction::make()->label('Детали'),
                 EditAction::make()->label('Изменить'),

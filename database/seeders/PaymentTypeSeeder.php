@@ -19,6 +19,7 @@ class PaymentTypeSeeder extends Seeder
             'ЕПОС',
             'Сертификат',
             '2 по цене 1',
+            'Бесплатно',
         ];
 
         foreach ($types as $type) {

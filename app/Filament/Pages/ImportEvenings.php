@@ -286,7 +286,7 @@ class ImportEvenings extends Page implements HasForms
         $role = match ($roleRaw) {
             'Ведущий' => 'host',
             'Менеджер' => 'manager',
-            'Администратор' => 'admin',
+            'Админ' => 'admin',
             'Супервайзер' => 'supervisor',
             default => null,
         };
@@ -443,9 +443,31 @@ class ImportEvenings extends Page implements HasForms
 
     private function syncEveningsAutoIncrement(): void
     {
-        $nextId = ((int) DB::table('evenings')->max('id')) + 1;
+        $maxId = (int) DB::table('evenings')->max('id');
+        $driver = DB::connection()->getDriverName();
 
-        DB::statement("ALTER TABLE evenings AUTO_INCREMENT = {$nextId}");
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $nextId = $maxId + 1;
+
+            DB::statement("ALTER TABLE evenings AUTO_INCREMENT = {$nextId}");
+
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            if ($maxId === 0) {
+                DB::statement(
+                    "SELECT setval(pg_get_serial_sequence('evenings', 'id'), 1, false)",
+                );
+
+                return;
+            }
+
+            DB::statement(
+                "SELECT setval(pg_get_serial_sequence('evenings', 'id'), ?, true)",
+                [$maxId],
+            );
+        }
     }
 
     private function addSkipped(array &$skippedList, string $item, string $reason): void

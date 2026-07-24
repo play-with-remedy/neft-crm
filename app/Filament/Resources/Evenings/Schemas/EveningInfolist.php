@@ -25,7 +25,7 @@ class EveningInfolist
 
                         TextEntry::make('played_at')
                             ->label('Дата проведения')
-                            ->dateTime(),
+                            ->date('d.m.Y'),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
@@ -91,7 +91,7 @@ class EveningInfolist
                                     ->formatStateUsing(fn ($state) => match ($state) {
                                         'host' => 'Ведущий',
                                         'admin' => 'Админ',
-                                        'manager' => 'Менджер',
+                                        'manager' => 'Менеджер',
                                         'supervisor' => 'Супервайзер',
                                         default => $state,
                                     }),

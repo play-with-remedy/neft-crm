@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ExpenseCategory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -13,12 +14,16 @@ class ExpenseCategorySeeder extends Seeder
     public function run(): void
     {
        $categories = [
-            "ММТ сбор",
-            "На финал турнира",
-            "Кубки \ Наградная атрибутика",
+            "Сбор ММТ",
+            "Финал турнира",
+            "Кубки / Наградная атрибутика",
             "Приз лучшему игроку",
-            "Призовой",
+            "Призовые",
             "Плашки",
+            "Клуб",
+            "Налоги",
+            "Организатор",
+            "Другое",
         ];
 
         foreach ($categories as $category) {

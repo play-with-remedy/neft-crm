@@ -35,7 +35,6 @@ class ExportEvenings extends Page
             fputcsv($handle, [
                 'ID вечера',
                 'Дата проведения',
-                'Локация',
                 'Тип вечера',
                 'Проект',
                 'Тип записи',
@@ -74,7 +73,7 @@ class ExportEvenings extends Page
                                 match ($staff->role) {
                                     'host' => 'Ведущий',
                                     'admin' => 'Админ',
-                                    'manager' => 'Менджер',
+                                    'manager' => 'Менеджер',
                                     'supervisor' => 'Супервайзер',
                                     default => $staff->role,
                                 },

@@ -1,58 +1,161 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CRM клуба
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Внутренняя CRM для учёта игроков, игровых вечеров и финансов клуба. Административный интерфейс построен на Laravel и Filament и доступен по адресу `/admin`.
 
-## About Laravel
+## Возможности
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- база игроков, источников и ведущих;
+- учёт вечеров, участников, команды, оплат и расходов;
+- проекты, типы вечеров и способы оплаты;
+- кассовая книга с фильтрацией по периоду;
+- финансовая структура с месячными значениями и вычисляемыми показателями;
+- импорт и экспорт игроков и вечеров в CSV;
+- месячные отчёты по выручке.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Технологии
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.3+;
+- Laravel 13;
+- Filament 4;
+- PostgreSQL для локальной разработки;
+- MySQL/MariaDB на production;
+- Vite и Tailwind CSS 4;
+- PHPUnit 12.
 
-## Learning Laravel
+Импорт вечеров поддерживает PostgreSQL и MySQL/MariaDB, включая синхронизацию последовательности идентификаторов после импорта записей с заданными ID.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Установка
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Настройте подключение к базе данных в `.env`, затем выполните:
 
-## Contributing
+```bash
+php artisan migrate
+php artisan db:seed
+npm install
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Для запуска среды разработки:
 
-## Code of Conduct
+```bash
+composer run dev
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Административная панель будет доступна по адресу:
 
-## Security Vulnerabilities
+```text
+http://localhost:8000/admin
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+> Важно: текущий `UserSeeder` содержит тестовые учётные записи. Не запускайте полный `db:seed` на production, пока тестовые пользователи и пароли не удалены из сидера.
 
-## License
+## Настройка базы данных
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### PostgreSQL
+
+```dotenv
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=crm_club
+DB_USERNAME=postgres
+DB_PASSWORD=
+```
+
+### MySQL
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=crm_club
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+## Основные сущности
+
+- `Player` — игрок;
+- `Host` — участник команды клуба;
+- `Evening` — игровой вечер или турнир;
+- `EveningParticipant` — участие игрока и его оплата;
+- `EveningStaff` — сотрудник, роль и зарплата за вечер;
+- `EveningExpense` — расход вечера;
+- `FinancialCategory` — узел дерева финансовых статей;
+- `FinancialCategoryValue` — ручное значение статьи за месяц;
+- `FinancialPeriodValue` — отдельные месячные показатели, например выручка корпоративов.
+
+Финансовые системные категории используют стабильное поле `code`. Отображаемое название можно менять без нарушения динамических расчётов.
+
+## Финансовые расчёты
+
+- выручка клуба — сумма оплат участников вечеров выбранного месяца;
+- выручка корпоративов — ручное месячное значение;
+- общая выручка — выручка клуба плюс выручка корпоративов;
+- общие расходы — сумма всех корневых расходных категорий;
+- чистая прибыль — общая выручка минус общие расходы;
+- зарплаты команды — сумма `evening_staff.salary` за выбранный месяц.
+
+Проценты финансовых статей рассчитываются относительно общей выручки.
+
+## Импорт и экспорт CSV
+
+Импорт выполняется в разделе «Синхронизация».
+
+- файлы хранятся на приватном диске `storage/app/private/imports`;
+- поддерживаются разделители `;` и `,`;
+- заголовки CSV должны соответствовать заголовкам экспортируемого файла;
+- импорт вечеров обновляет существующие вечера с теми же ID;
+- связанные участники, команда и расходы импортируемого вечера заменяются данными из файла.
+
+Перед большим импортом рекомендуется сделать резервную копию базы данных.
+
+## Тесты и проверки
+
+```bash
+composer test
+npm run build
+composer audit --locked
+```
+
+В текущем проекте шаблонный feature-тест ожидает ответ `200` для `/`, хотя маршрут корректно перенаправляет на `/admin` с кодом `302`. Этот тест необходимо обновить.
+
+## Развёртывание
+
+Минимальная последовательность команд:
+
+```bash
+composer install --no-dev --prefer-dist --optimize-autoloader
+npm ci
+npm run build
+php artisan migrate --force
+php artisan optimize
+```
+
+Production-конфигурация должна содержать:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+LOG_LEVEL=warning
+```
+
+Веб-сервер должен публиковать только каталог `public`. Файл `.env`, `storage`, исходный код и резервные копии базы не должны быть доступны через HTTP.
+
+После обновления приложения проверьте:
+
+```bash
+php artisan about
+php artisan migrate:status
+php artisan route:list
+```
+
+## Резервное копирование
+
+Перед миграциями, импортом и обновлением зависимостей создавайте резервную копию production-базы. Отдельно следует сохранять `.env` в защищённом хранилище и каталог `storage/app/private`, если импортированные файлы необходимо архивировать.

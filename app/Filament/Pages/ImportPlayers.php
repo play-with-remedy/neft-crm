@@ -55,7 +55,6 @@ class ImportPlayers extends Page implements HasForms
         'first_name',
         'gender',
         'birthday',
-        'first_visit_at',
     ];
 
     public function mount(): void
@@ -219,12 +218,6 @@ class ImportPlayers extends Page implements HasForms
                 $emptyBirthdayUsedList[] = $nickname;
             }
 
-            if ($firstVisitAt === '') {
-                $skipped++;
-                $this->addSkipped($skippedList, $nickname, 'не указана дата первого посещения');
-                continue;
-            }
-
             $birthdayParts = $this->parseBirthday($birthday);
 
             if ($birthdayParts === null) {
@@ -233,16 +226,20 @@ class ImportPlayers extends Page implements HasForms
                 continue;
             }
 
-            try {
-                $firstVisitDate = Carbon::createFromFormat('d.m.Y', $firstVisitAt);
+            $firstVisitDate = null;
 
-                if ($firstVisitDate->format('d.m.Y') !== $firstVisitAt) {
-                    throw new \RuntimeException('Invalid date');
+            if ($firstVisitAt !== '') {
+                try {
+                    $firstVisitDate = Carbon::createFromFormat('d.m.Y', $firstVisitAt);
+
+                    if ($firstVisitDate->format('d.m.Y') !== $firstVisitAt) {
+                        throw new \RuntimeException('Invalid date');
+                    }
+                } catch (\Throwable) {
+                    $skipped++;
+                    $this->addSkipped($skippedList, $nickname, 'неверная дата первого посещения');
+                    continue;
                 }
-            } catch (\Throwable) {
-                $skipped++;
-                $this->addSkipped($skippedList, $nickname, 'неверная дата первого посещения');
-                continue;
             }
 
             $playerData = [
@@ -255,7 +252,7 @@ class ImportPlayers extends Page implements HasForms
                 'birth_year' => $birthdayParts['year'],
                 'phone' => $phone,
                 'telegram' => $telegram,
-                'first_visit_at' => $firstVisitDate->format('d.m.Y'),
+                'first_visit_at' => $firstVisitDate?->format('Y-m-d'),
                 'source_id' => $source?->id,
                 'first_host_id' => $firstHost?->id,
             ];

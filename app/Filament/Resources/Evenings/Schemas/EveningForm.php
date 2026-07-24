@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\Placeholder;
 
 class EveningForm
 {
@@ -92,7 +93,7 @@ class EveningForm
                                     ->options([
                                         'host' => 'Ведущий',
                                         'admin' => 'Админ',
-                                        'manager' => 'Менджер',
+                                        'manager' => 'Менеджер',
                                         'supervisor' => 'Супервайзер',
                                     ])
                                     ->required(),
@@ -112,13 +113,14 @@ class EveningForm
                     ->collapsed()
                     ->columnSpanFull(),
 
-                Section::make(fn ($get) => 'Участники: ' . count($get('participants') ?? []))
+                Section::make('Участники')
+                    ->id('evening-participants-section')
                     ->schema([
                         Repeater::make('participants')
                             ->relationship()
                             ->hiddenLabel()
-                            ->itemNumbers()
                             ->table([
+                                TableColumn::make('#')->width('60px'),
                                 TableColumn::make('Игрок'),
                                 TableColumn::make('Тип оплаты')->width('180px'),
                                 TableColumn::make('Оплата')->width('140px'),
@@ -127,6 +129,27 @@ class EveningForm
                                 TableColumn::make('Примечание'),
                             ])
                             ->schema([
+                                Placeholder::make('row_number')
+                                    ->hiddenLabel()
+                                    ->content(function ($component) {
+                                        $repeater = $component->getContainer()->getParentComponent();
+
+                                        $state = $repeater->getState() ?? [];
+                                        $keys = array_keys($state);
+
+                                        $statePath = $component->getStatePath();
+                                        $repeaterStatePath = $repeater->getStatePath();
+
+                                        $itemKey = str($statePath)
+                                            ->after($repeaterStatePath . '.')
+                                            ->beforeLast('.')
+                                            ->toString();
+
+                                        $index = array_search($itemKey, $keys, true);
+
+                                        return $index === false ? '' : $index + 1;
+                                    }),
+
                                 Select::make('player_id')
                                     ->hiddenLabel()
                                     ->relationship('player', 'nickname')

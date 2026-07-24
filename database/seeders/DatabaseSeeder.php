@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             HostSeeder::class,
             EveningTypeSeeder::class,
             PaymentTypeSeeder::class,
+            FinancialCategorySeeder::class,
         ]);
     }   
 }
