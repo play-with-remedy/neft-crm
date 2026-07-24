@@ -23,12 +23,16 @@ class EveningTypeSeeder extends Seeder
                 'description' => 'Обучающие проекты',
             ],
             [
-                'name' => 'Турниры',
-                'description' => 'ММТ',
+                'name' => 'Турнир',
+                'description' => 'Турниры ММТ',
             ],
             [
-                'name' => 'Другое',
-                'description' => '',
+                'name' => 'Дополнительные проект',
+                'description' => 'Закрытые столы, Городская мафия и др.',
+            ],
+            [
+                'name' => 'Турнир полуспорт',
+                'description' => 'Light Cup, Капитанский, Переход ',
             ],
         ];
 

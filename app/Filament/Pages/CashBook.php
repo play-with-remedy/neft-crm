@@ -27,6 +27,8 @@ class CashBook extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Кассовая книга';
 
+    protected static ?string $title = 'Кассовая книга';
+
     protected static UnitEnum|string|null $navigationGroup = 'Отчеты';
 
     protected static ?int $navigationSort = 10;
@@ -59,7 +61,14 @@ class CashBook extends Page implements HasTable
 
                 TextColumn::make('day')
                     ->label('День')
-                    ->state(fn (Evening $record) => Str::ucfirst($record->played_at?->translatedFormat('l'))),
+                    ->state(
+                        fn (Evening $record): string => Str::ucfirst(
+                            $record->played_at
+                                ?->copy()
+                                ->locale('ru')
+                                ->translatedFormat('l') ?? ''
+                        )
+                    ),
 
                 TextColumn::make('project.name')
                     ->label('Проект')
@@ -68,26 +77,6 @@ class CashBook extends Page implements HasTable
                 TextColumn::make('eveningType.name')
                     ->label('Тип')
                     ->searchable(),
-
-                TextColumn::make('manager')
-                    ->label('Менеджер')
-                    ->state(function (Evening $record): string {
-                        return $record->staff
-                            ->where('role', 'manager')
-                            ->map(fn ($staff) => $staff->host?->name)
-                            ->filter()
-                            ->implode(', ');
-                    }),
-
-                TextColumn::make('host')
-                    ->label('Ведущий')
-                    ->state(function (Evening $record): string {
-                        return $record->staff
-                            ->where('role', 'host')
-                            ->map(fn ($staff) => $staff->host?->name)
-                            ->filter()
-                            ->implode(', ');
-                    }),
 
                 TextColumn::make('revenue')
                     ->label('Выручка')

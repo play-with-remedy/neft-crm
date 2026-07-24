@@ -16,15 +16,17 @@ use Illuminate\Support\Facades\DB;
 
 class FinancialStructure extends Page
 {
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownTray;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartPie;
 
-    protected static ?string $navigationLabel = 'Структура расходов';
+    protected static ?string $slug = 'monthly-expenses';
 
-    protected static UnitEnum|string|null $navigationGroup = 'Финансы';
+    protected static ?string $navigationLabel = 'Месячные расходы';
+
+    protected static UnitEnum|string|null $navigationGroup = 'Отчеты';
 
     protected static ?int $navigationSort = 10;
 
-    protected static ?string $title = 'Структура финансовых статей';
+    protected static ?string $title = 'Месячные расходы';
 
     protected string $view = 'filament.pages.financial-structure';
 
