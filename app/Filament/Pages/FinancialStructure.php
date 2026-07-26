@@ -13,6 +13,7 @@ use App\Models\FinancialCategoryValue;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 
 class FinancialStructure extends Page
 {
@@ -33,7 +34,8 @@ class FinancialStructure extends Page
     /**
      * Выбранный месяц в формате YYYY-MM.
      */
-    public string $period;
+    #[Url(as: 'month', history: true)]
+    public string $period = '';
 
     /**
      * Включён ли режим редактирования.
@@ -65,7 +67,9 @@ class FinancialStructure extends Page
 
     public function mount(): void
     {
-        $this->period = now()->format('Y-m');
+        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->period)) {
+            $this->period = now()->format('Y-m');
+        }
 
         $this->loadCategories();
         $this->loadValues();
