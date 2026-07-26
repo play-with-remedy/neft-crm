@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Evenings\Schemas;
 
+use App\Models\PaymentType;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -9,9 +11,14 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\Str;
 
 class EveningForm
 {
@@ -116,7 +123,77 @@ class EveningForm
                 Section::make('Участники')
                     ->id('evening-participants-section')
                     ->schema([
-                        Repeater::make('participants')
+                        Section::make('Массовое добавление участников')
+                            ->description('Укажите общие параметры для новых строк. После добавления каждую строку можно изменить отдельно.')
+                            ->schema([
+                                TextInput::make('participants_batch_count')
+                            ->label('Количество участников')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(100)
+                            ->default(1)
+                            ->dehydrated(false),
+
+                                Select::make('participants_batch_payment_type_id')
+                            ->label('Тип оплаты')
+                            ->options(fn (): array => PaymentType::query()
+                                ->orderBy('id')
+                                ->pluck('type', 'id')
+                                ->all())
+                            ->default(fn (): ?int => PaymentType::query()
+                                ->where('type', 'Наличные')
+                                ->value('id'))
+                            ->selectablePlaceholder(false)
+                            ->preload()
+                            ->dehydrated(false),
+
+                                TextInput::make('participants_batch_paid_amount')
+                            ->label('Сумма оплаты')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->dehydrated(false),
+
+                                Actions::make([
+                                    Action::make('add_participants_batch')
+                                ->label('Добавить строки')
+                                ->icon('heroicon-o-user-plus')
+                                ->action(function (Get $get, Set $set): void {
+                                    $count = max(1, min(100, (int) $get('participants_batch_count')));
+                                    $paymentTypeId = $get('participants_batch_payment_type_id');
+                                    $paidAmount = $get('participants_batch_paid_amount') ?? 0;
+                                    $participants = $get('participants') ?? [];
+
+                                    for ($index = 0; $index < $count; $index++) {
+                                        $participants[Str::uuid()->toString()] = [
+                                            'player_id' => null,
+                                            'payment_type_id' => $paymentTypeId,
+                                            'paid_amount' => $paidAmount,
+                                            'is_new_player' => false,
+                                            'is_full_payment' => true,
+                                            'note' => null,
+                                        ];
+                                    }
+
+                                    $set('participants', $participants);
+
+                                    Notification::make()
+                                        ->title("Добавлено строк: {$count}")
+                                        ->success()
+                                        ->send();
+                                        }),
+                                ])
+                                    ->alignEnd()
+                                    ->verticallyAlignEnd(),
+                            ])
+                            ->columns(4)
+                            ->compact()
+                            ->columnSpanFull(),
+
+                        Section::make('Список участников')
+                            ->schema([
+                                Repeater::make('participants')
                             ->relationship()
                             ->hiddenLabel()
                             ->table([
@@ -160,6 +237,10 @@ class EveningForm
                                 Select::make('payment_type_id')
                                     ->hiddenLabel()
                                     ->relationship('paymentType', 'type')
+                                    ->default(fn (): ?int => PaymentType::query()
+                                        ->where('type', 'Наличные')
+                                        ->value('id'))
+                                    ->selectablePlaceholder(false)
                                     ->preload()
                                     ->required(),
 
@@ -186,8 +267,13 @@ class EveningForm
                             ])
                             ->compact()
                             ->addActionLabel('Добавить участника')
+                            ->addAction(fn (Action $action): Action => $action->color('primary'))
+                            ->columnSpanFull(),
+                            ])
+                            ->compact()
                             ->columnSpanFull(),
                     ])
+                    ->columns(4)
                     ->collapsible()
                     ->collapsed()
                     ->columnSpanFull(),
