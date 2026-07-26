@@ -11,7 +11,6 @@ use App\Enums\NavigationGroup;
 use App\Models\Player;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -210,11 +209,8 @@ class PlayerResource extends Resource
             ])
             ->filters([
                 Filter::make('birth_month_filter')
+                    ->label('По месяцу рождения')
                     ->form([
-                        Placeholder::make('birthday_filter_title')
-                            ->hiddenLabel()
-                            ->content('Фильтр по дню рождения'),
-
                         Select::make('birth_month')
                             ->label('Месяц рождения')
                             ->placeholder('Например: Май')
@@ -238,11 +234,8 @@ class PlayerResource extends Resource
                     }),
 
                 Filter::make('first_visit_filter')
+                    ->label('По первому посещению')
                     ->form([
-                        Placeholder::make('first_visit_filter_title')
-                            ->hiddenLabel()
-                            ->content('Фильтр по первому посещению'),
-
                         Select::make('month')
                             ->label('Месяц посещения')
                             ->placeholder('Выберите месяц')
