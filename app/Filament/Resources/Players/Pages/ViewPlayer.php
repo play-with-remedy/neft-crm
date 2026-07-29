@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Players\Pages;
 
 use App\Filament\Resources\Players\PlayerResource;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -14,6 +15,12 @@ class ViewPlayer extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('statistics')
+                ->label('Статистика')
+                ->icon('heroicon-o-chart-bar')
+                ->color('primary')
+                ->url(fn (): string => PlayerResource::getUrl('statistics', ['record' => $this->record])),
+
             EditAction::make()
                 ->label('Редактировать'),
         ];

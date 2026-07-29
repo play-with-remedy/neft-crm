@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Players;
 use App\Filament\Resources\Players\Pages\CreatePlayer;
 use App\Filament\Resources\Players\Pages\EditPlayer;
 use App\Filament\Resources\Players\Pages\ListPlayers;
+use App\Filament\Resources\Players\Pages\PlayerStatistics;
 use App\Filament\Resources\Players\Pages\ViewPlayer;
 use App\Filament\Resources\Players\Schemas\PlayerInfolist;
 use App\Enums\NavigationGroup;
@@ -293,6 +294,7 @@ class PlayerResource extends Resource
             'index' => ListPlayers::route('/'),
             'create' => CreatePlayer::route('/create'),
             'view' => ViewPlayer::route('/{record}'),
+            'statistics' => PlayerStatistics::route('/{record}/statistics'),
             'edit' => EditPlayer::route('/{record}/edit'),
         ];
     }

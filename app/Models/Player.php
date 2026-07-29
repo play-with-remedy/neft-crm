@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Player extends Model
 {
@@ -35,6 +36,11 @@ class Player extends Model
     public function firstHost(): BelongsTo
     {
         return $this->belongsTo(Host::class, 'first_host_id');
+    }
+
+    public function participations(): HasMany
+    {
+        return $this->hasMany(EveningParticipant::class);
     }
 
     public function getGenderLabelAttribute(): string
