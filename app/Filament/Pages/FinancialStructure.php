@@ -363,7 +363,7 @@ class FinancialStructure extends Page
     private function calculateTeamEventSalaries(): float
     {
         $periodStart = Carbon::createFromFormat(
-            'Y-m',
+            '!Y-m',
             $this->period
         )->startOfMonth();
 
@@ -394,7 +394,7 @@ class FinancialStructure extends Page
     private function calculateTeamEventOtherExpenses(): float
     {
         $periodStart = Carbon::createFromFormat(
-            'Y-m',
+            '!Y-m',
             $this->period
         )->startOfMonth();
 
@@ -435,7 +435,7 @@ class FinancialStructure extends Page
     public function clubRevenue(): float
     {
         $periodStart = Carbon::createFromFormat(
-            'Y-m',
+            '!Y-m',
             $this->period
         )->startOfMonth();
 
@@ -501,7 +501,7 @@ class FinancialStructure extends Page
     private function normalizedPeriod(): string
     {
         return Carbon::createFromFormat(
-            'Y-m',
+            '!Y-m',
             $this->period
         )
             ->startOfMonth()
@@ -514,7 +514,7 @@ class FinancialStructure extends Page
     private function formattedPeriod(): string
     {
         return Carbon::createFromFormat(
-            'Y-m',
+            '!Y-m',
             $this->period
         )->translatedFormat('F Y');
     }
