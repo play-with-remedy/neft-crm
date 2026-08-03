@@ -2,14 +2,14 @@
     @php
         $totals = $this->getTotals();
 
-        $items = [
+        $mainItems = [
             ['label' => 'Выручка', 'value' => $totals['revenue'] ?? 0],
             ['label' => 'Прибыль', 'value' => $totals['profit'] ?? 0],
-            ['label' => 'Наличные', 'value' => $totals['cash'] ?? 0],
-            ['label' => 'Сертификаты', 'value' => $totals['certificates'] ?? 0],
             ['label' => 'Расходы', 'value' => $totals['expenses'] ?? 0],
             ['label' => 'Зарплаты', 'value' => $totals['staff_salary'] ?? 0],
         ];
+
+        $paymentTypeItems = $totals['payment_types'] ?? [];
 
         $formatMoney = function ($value): string {
             $value = (float) ($value ?? 0);
@@ -48,6 +48,13 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 12px;
+        }
+
+        .cash-book-summary__section-title {
+            margin: 20px 0 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #d4d4d8;
         }
 
         .cash-book-summary__card {
@@ -95,7 +102,7 @@
         </div>
 
         <div class="cash-book-summary__grid">
-            @foreach ($items as $item)
+            @foreach ($mainItems as $item)
                 @php
                     $modifier = match ($item['label']) {
                         'Прибыль' => 'cash-book-summary__card--profit',
@@ -116,6 +123,26 @@
                 </div>
             @endforeach
         </div>
+
+        @if (count($paymentTypeItems))
+            <div class="cash-book-summary__section-title">
+                По типам оплаты
+            </div>
+
+            <div class="cash-book-summary__grid">
+                @foreach ($paymentTypeItems as $item)
+                    <div class="cash-book-summary__card">
+                        <div class="cash-book-summary__label">
+                            {{ $item['label'] }}
+                        </div>
+
+                        <div class="cash-book-summary__value">
+                            {{ $formatMoney($item['value']) }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
     </div>
 
     {{ $this->table }}
