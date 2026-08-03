@@ -12,6 +12,7 @@ use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
+use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -91,6 +92,26 @@ class PlayerRating extends Page implements HasTable
                     ->sortable()
                     ->placeholder('—')
                     ->alignCenter(),
+
+                TextColumn::make('activity_status')
+                    ->label('Активность')
+                    ->state(
+                        fn (Player $record): string => $this->activityStatusLabel(
+                            $record->activity_last_visit,
+                        )
+                    )
+                    ->badge()
+                    ->color(
+                        fn (Player $record): string | array => $this->activityStatusColor(
+                            $record->activity_last_visit,
+                        )
+                    )
+                    ->tooltip(
+                        fn (Player $record): string => $this->activityStatusTooltip(
+                            $record->activity_last_visit,
+                        )
+                    )
+                    ->alignCenter(),
             ])
             ->filters([
                 SelectFilter::make('project')
@@ -115,6 +136,17 @@ class PlayerRating extends Page implements HasTable
                     ->label('По месяцу')
                     ->placeholder('Все месяцы')
                     ->options(fn (): array => $this->monthOptions())
+                    ->query(fn (Builder $query): Builder => $query),
+
+                SelectFilter::make('activity_status')
+                    ->label('По активности')
+                    ->placeholder('Все статусы')
+                    ->options([
+                        'active' => 'Активный — до 30 дней',
+                        'pause' => 'Пауза — 31–60 дней',
+                        'inactive' => 'Неактивный — 61–90 дней',
+                        'dormant' => 'Давно не был — более 90 дней',
+                    ])
                     ->query(fn (Builder $query): Builder => $query),
             ])
             ->filtersApplyAction(
@@ -157,7 +189,7 @@ class PlayerRating extends Page implements HasTable
 
         $this->applyJoinedEveningFilters($lastVisit);
 
-        return Player::query()
+        $query = Player::query()
             ->whereHas(
                 'participations',
                 fn (Builder $query): Builder => $this->applyParticipationFilters($query),
@@ -171,7 +203,46 @@ class PlayerRating extends Page implements HasTable
             ->addSelect([
                 'statistics_first_visit' => $firstVisit,
                 'statistics_last_visit' => $lastVisit,
+                'activity_last_visit' => $this->actualLastVisitQuery(),
             ]);
+
+        return $this->applyActivityStatusFilter($query);
+    }
+
+    private function actualLastVisitQuery(): Builder
+    {
+        return EveningParticipant::query()
+            ->selectRaw('MAX(evenings.played_at)')
+            ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
+            ->whereColumn('evening_participants.player_id', 'players.id');
+    }
+
+    private function applyActivityStatusFilter(Builder $query): Builder
+    {
+        $status = $this->getTableFilterState('activity_status')['value'] ?? null;
+        $thirtyDaysAgo = now()->startOfDay()->subDays(30);
+        $sixtyDaysAgo = now()->startOfDay()->subDays(60);
+        $ninetyDaysAgo = now()->startOfDay()->subDays(90);
+
+        return match ($status) {
+            'active' => $query->where(
+                $this->actualLastVisitQuery(),
+                '>=',
+                $thirtyDaysAgo,
+            ),
+            'pause' => $query
+                ->where($this->actualLastVisitQuery(), '>=', $sixtyDaysAgo)
+                ->where($this->actualLastVisitQuery(), '<', $thirtyDaysAgo),
+            'inactive' => $query
+                ->where($this->actualLastVisitQuery(), '>=', $ninetyDaysAgo)
+                ->where($this->actualLastVisitQuery(), '<', $sixtyDaysAgo),
+            'dormant' => $query->where(
+                $this->actualLastVisitQuery(),
+                '<',
+                $ninetyDaysAgo,
+            ),
+            default => $query,
+        };
     }
 
     private function applyParticipationFilters(Builder $query): Builder
@@ -238,5 +309,62 @@ class PlayerRating extends Page implements HasTable
                 $date->format('Y-m') => Str::ucfirst($date->locale('ru')->translatedFormat('F Y')),
             ])
             ->all();
+    }
+
+    private function activityStatusLabel($lastVisit): string
+    {
+        return match (true) {
+            $this->daysSince($lastVisit) <= 30 => 'Активный',
+            $this->daysSince($lastVisit) <= 60 => 'Пауза',
+            $this->daysSince($lastVisit) <= 90 => 'Неактивный',
+            default => 'Давно не был',
+        };
+    }
+
+    private function activityStatusColor($lastVisit): string | array
+    {
+        return match (true) {
+            $this->daysSince($lastVisit) <= 30 => 'success',
+            $this->daysSince($lastVisit) <= 60 => 'warning',
+            $this->daysSince($lastVisit) <= 90 => 'danger',
+            default => Color::Purple,
+        };
+    }
+
+    private function activityStatusTooltip($lastVisit): string
+    {
+        $date = Carbon::parse($lastVisit);
+        $days = $this->daysSince($lastVisit);
+
+        return 'Последний визит: '
+            . $date->format('d.m.Y')
+            . ' ('
+            . $days
+            . ' '
+            . $this->dayWord($days)
+            . ' назад)';
+    }
+
+    private function daysSince($lastVisit): int
+    {
+        return (int) Carbon::parse($lastVisit)
+            ->startOfDay()
+            ->diffInDays(now()->startOfDay());
+    }
+
+    private function dayWord(int $days): string
+    {
+        if (($days % 10 === 1) && ($days % 100 !== 11)) {
+            return 'день';
+        }
+
+        if (
+            in_array($days % 10, [2, 3, 4], true)
+            && ! in_array($days % 100, [12, 13, 14], true)
+        ) {
+            return 'дня';
+        }
+
+        return 'дней';
     }
 }
