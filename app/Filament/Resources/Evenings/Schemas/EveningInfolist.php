@@ -6,7 +6,6 @@ use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\HtmlString;
 
 class EveningInfolist
 {
@@ -64,7 +63,7 @@ class EveningInfolist
                 Section::make('Расходы')
                     ->schema([
                         RepeatableEntry::make('expenses')
-                            ->label(new HtmlString(''))
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('category.name')
                                     ->label('Статья расходов'),
@@ -82,7 +81,7 @@ class EveningInfolist
                 Section::make('Команда вечера')
                     ->schema([
                         RepeatableEntry::make('staff')
-                            ->label(new HtmlString(''))
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('host.nickname')
                                     ->label('Человек'),
@@ -110,7 +109,7 @@ class EveningInfolist
                 Section::make('Оплаты по типам')
                     ->schema([
                         RepeatableEntry::make('payments_by_type')
-                            ->label(new HtmlString(''))
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('name')
                                     ->label('Тип оплаты'),
@@ -128,7 +127,7 @@ class EveningInfolist
                 Section::make(fn ($record) => 'Участники: ' . ($record?->participants?->count() ?? 0))
                     ->schema([
                         RepeatableEntry::make('participants')
-                            ->label(new HtmlString(''))
+                            ->hiddenLabel()
                             ->schema([
                                 TextEntry::make('player.nickname')
                                     ->label('Игрок'),

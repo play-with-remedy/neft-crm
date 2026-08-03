@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Evenings\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use App\Models\Evening;
+use App\Support\EveningCsvExporter;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -36,21 +37,21 @@ class EveningsTable
                     ->sortable(),
 
                 TextColumn::make('participants_sum_paid_amount')
-                    ->label('Оплата игроков')
+                    ->label('Оплата')
                     ->numeric(decimalPlaces: 0)
                     ->suffix(' BYN')
                     ->alignCenter()
                     ->sum('participants', 'paid_amount'),
 
                 TextColumn::make('staff_sum_salary')
-                    ->label('Затраты Команды')
+                    ->label('ЗП Команды')
                     ->numeric(decimalPlaces: 0)
                     ->suffix(' BYN')
                     ->alignCenter()
                     ->sum('staff', 'salary'),
 
                 TextColumn::make('expenses_sum_amount')
-                    ->label('Прочие расходы')
+                    ->label('Расходы')
                     ->numeric(decimalPlaces: 0)
                     ->suffix(' BYN')
                     ->alignCenter()
@@ -105,11 +106,10 @@ class EveningsTable
             ->recordActions([
                 ViewAction::make()->label('Детали'),
                 EditAction::make()->label('Изменить'),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                Action::make('export')
+                    ->label('Экспорт')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(fn (Evening $record) => EveningCsvExporter::download($record)),
             ]);
     }
 }
