@@ -70,7 +70,6 @@ class PlayerResource extends Resource
 
                 TextInput::make('first_name')
                     ->label('Имя')
-                    ->required()
                     ->maxLength(25)
                     ->rule('regex:/^[\p{L}\s-]+$/u')
                     ->validationMessages([
@@ -87,7 +86,6 @@ class PlayerResource extends Resource
 
                 Select::make('gender')
                     ->label('Пол')
-                    ->required()
                     ->options([
                         'male' => 'Мужской',
                         'female' => 'Женский',
@@ -100,13 +98,11 @@ class PlayerResource extends Resource
                                 Select::make('birth_day')
                                     ->label('День')
                                     ->options(array_combine(range(1, 31), range(1, 31)))
-                                    ->required()
                                     ->native(false),
 
                                 Select::make('birth_month')
                                     ->label('Месяц')
                                     ->options(self::months())
-                                    ->required()
                                     ->native(false),
 
                                 TextInput::make('birth_year')
@@ -179,6 +175,10 @@ class PlayerResource extends Resource
                 Tables\Columns\TextColumn::make('birthday')
                     ->label('Дата рождения')
                     ->state(function ($record) {
+                        if (! $record->birth_day || ! $record->birth_month) {
+                            return '—';
+                        }
+
                         $date = str_pad($record->birth_day, 2, '0', STR_PAD_LEFT)
                             . '.'
                             . str_pad($record->birth_month, 2, '0', STR_PAD_LEFT);
