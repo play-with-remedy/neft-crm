@@ -102,7 +102,7 @@ class EveningsTable
                     ->relationship('project', 'name')
                     ->preload(),
             ])
-            ->defaultSort('played_at', 'asc')
+            ->defaultSort('played_at', 'desc')
             ->recordActions([
                 ViewAction::make()->label('Детали'),
                 EditAction::make()->label('Изменить'),
