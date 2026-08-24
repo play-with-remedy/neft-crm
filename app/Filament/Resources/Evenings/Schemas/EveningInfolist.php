@@ -128,6 +128,13 @@ class EveningInfolist
                     ->schema([
                         RepeatableEntry::make('participants')
                             ->hiddenLabel()
+                            ->getStateUsing(fn ($record) => $record->participants()
+                                ->with(['player', 'paymentType'])
+                                ->leftJoin('players', 'players.id', '=', 'evening_participants.player_id')
+                                ->orderByDesc('evening_participants.paid_amount')
+                                ->orderBy('players.nickname')
+                                ->select('evening_participants.*')
+                                ->get())
                             ->schema([
                                 TextEntry::make('player.nickname')
                                     ->label('Игрок'),

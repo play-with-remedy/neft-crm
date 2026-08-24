@@ -51,6 +51,7 @@ class EveningForm
                     ->schema([
                         Repeater::make('expenses')
                             ->relationship()
+                            ->defaultItems(0)
                             ->hiddenLabel()
                             ->table([
                                 TableColumn::make('Статья расходов'),
@@ -82,6 +83,7 @@ class EveningForm
                     ->schema([
                         Repeater::make('staff')
                             ->relationship()
+                            ->defaultItems(0)
                             ->hiddenLabel()
                             ->table([
                                 TableColumn::make('Человек'),
@@ -193,8 +195,18 @@ class EveningForm
 
                         Section::make('Список участников')
                             ->schema([
+                                Placeholder::make('participants_total_paid')
+                                    ->label('Общая сумма взносов')
+                                    ->content(function (Get $get): string {
+                                        $total = collect($get('participants') ?? [])
+                                            ->sum(fn (array $participant): float => (float) ($participant['paid_amount'] ?? 0));
+
+                                        return number_format($total, 2, ',', ' ') . ' BYN';
+                                    }),
+
                                 Repeater::make('participants')
                             ->relationship()
+                            ->defaultItems(0)
                             ->hiddenLabel()
                             ->table([
                                 TableColumn::make('#')->width('60px'),
@@ -232,6 +244,10 @@ class EveningForm
                                     ->relationship('player', 'nickname')
                                     ->searchable()
                                     ->preload(false)
+                                    ->distinct()
+                                    ->validationMessages([
+                                        'distinct' => 'Этот игрок уже добавлен в участники вечера.',
+                                    ])
                                     ->required(),
 
                                 Select::make('payment_type_id')
@@ -248,6 +264,7 @@ class EveningForm
                                     ->hiddenLabel()
                                     ->numeric()
                                     ->default(0)
+                                    ->live(debounce: 400)
                                     ->required(),
 
                                 Toggle::make('is_new_player')
