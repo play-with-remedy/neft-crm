@@ -7,11 +7,11 @@ use App\Support\EveningCsvExporter;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class EveningsTable
@@ -63,9 +63,9 @@ class EveningsTable
                     ->alignCenter()
                     ->suffix(' BYN')
                     ->state(function ($record) {
-                        $participants = $record->participants()->sum('paid_amount');
-                        $staff = $record->staff()->sum('salary');
-                        $expenses = $record->expenses()->sum('amount');
+                        $participants = (int) $record->participants_sum_paid_amount;
+                        $staff = (int) $record->staff_sum_salary;
+                        $expenses = (int) $record->expenses_sum_amount;
 
                         return $participants - $staff - $expenses;
                     }),

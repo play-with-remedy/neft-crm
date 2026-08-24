@@ -192,6 +192,13 @@ class ImportEvenings extends Page implements HasForms
         $createdExpenses = 0;
 
         foreach ($rowsByEvening as $eveningId => $rows) {
+            if (! ctype_digit((string) $eveningId) || (int) $eveningId < 1) {
+                $skipped++;
+                $this->addSkipped($skippedList, (string) $eveningId, 'неверный ID вечера');
+
+                continue;
+            }
+
             $firstRow = $rows[0];
 
             $playedAt = $this->parseDateTime($firstRow[self::HEADERS['played_at']] ?? null);
@@ -203,40 +210,109 @@ class ImportEvenings extends Page implements HasForms
                 continue;
             }
 
-            $eveningData = [
-                'played_at' => $playedAt,
-                'evening_type_id' => $this->resolveEveningType($firstRow[self::HEADERS['evening_type']] ?? null)?->id,
-                'project_id' => $this->resolveProject($firstRow[self::HEADERS['project']] ?? null)?->id,
-            ];
+            $skippedBeforeEvening = $skipped;
 
-            $evening = Evening::find($eveningId);
+            try {
+                $imported = DB::transaction(function () use (
+                    $eveningId,
+                    $firstRow,
+                    $playedAt,
+                    $rows,
+                    $skippedBeforeEvening,
+                    &$skipped,
+                    &$skippedList,
+                ): array {
+                    $eveningData = [
+                        'played_at' => $playedAt,
+                        'evening_type_id' => $this->resolveEveningType(
+                            $firstRow[self::HEADERS['evening_type']] ?? null,
+                        )?->id,
+                        'project_id' => $this->resolveProject(
+                            $firstRow[self::HEADERS['project']] ?? null,
+                        )?->id,
+                    ];
 
-            if (! $evening) {
-                $evening = Evening::forceCreate([
-                    'id' => (int) $eveningId,
-                    ...$eveningData,
-                ]);
+                    $evening = Evening::query()
+                        ->lockForUpdate()
+                        ->find((int) $eveningId);
+                    $wasCreated = ! $evening;
 
-                $createdEvenings++;
-            } else {
-                $evening->update($eveningData);
+                    if ($wasCreated) {
+                        $evening = Evening::forceCreate([
+                            'id' => (int) $eveningId,
+                            ...$eveningData,
+                        ]);
+                    } else {
+                        $evening->update($eveningData);
+                    }
 
-                $updatedEvenings++;
-            }
+                    $evening->staff()->delete();
+                    $evening->participants()->delete();
+                    $evening->expenses()->delete();
 
-            $evening->staff()->delete();
-            $evening->participants()->delete();
-            $evening->expenses()->delete();
+                    $eveningStaff = 0;
+                    $eveningParticipants = 0;
+                    $eveningExpenses = 0;
 
-            foreach ($rows as $rowData) {
-                $recordType = trim($rowData[self::HEADERS['record_type']] ?? '');
+                    foreach ($rows as $rowData) {
+                        $recordType = trim($rowData[self::HEADERS['record_type']] ?? '');
 
-                match ($recordType) {
-                    'Команда' => $createdStaff += $this->importStaff($evening, $rowData, $skipped, $skippedList),
-                    'Игрок' => $createdParticipants += $this->importParticipant($evening, $rowData, $skipped, $skippedList),
-                    'Расход' => $createdExpenses += $this->importExpense($evening, $rowData, $skipped, $skippedList),
-                    default => $this->skipUnknownType($skipped, $skippedList, $eveningId, $recordType),
-                };
+                        match ($recordType) {
+                            'Команда' => $eveningStaff += $this->importStaff(
+                                $evening,
+                                $rowData,
+                                $skipped,
+                                $skippedList,
+                            ),
+                            'Игрок' => $eveningParticipants += $this->importParticipant(
+                                $evening,
+                                $rowData,
+                                $skipped,
+                                $skippedList,
+                            ),
+                            'Расход' => $eveningExpenses += $this->importExpense(
+                                $evening,
+                                $rowData,
+                                $skipped,
+                                $skippedList,
+                            ),
+                            default => $this->skipUnknownType(
+                                $skipped,
+                                $skippedList,
+                                $eveningId,
+                                $recordType,
+                            ),
+                        };
+                    }
+
+                    if ($skipped > $skippedBeforeEvening) {
+                        throw new \RuntimeException('Вечер содержит некорректные строки.');
+                    }
+
+                    return [
+                        'created' => $wasCreated,
+                        'staff' => $eveningStaff,
+                        'participants' => $eveningParticipants,
+                        'expenses' => $eveningExpenses,
+                    ];
+                });
+
+                $createdEvenings += $imported['created'] ? 1 : 0;
+                $updatedEvenings += $imported['created'] ? 0 : 1;
+                $createdStaff += $imported['staff'];
+                $createdParticipants += $imported['participants'];
+                $createdExpenses += $imported['expenses'];
+            } catch (\Throwable $exception) {
+                if ($skipped === $skippedBeforeEvening) {
+                    $skipped++;
+                    $this->addSkipped(
+                        $skippedList,
+                        (string) $eveningId,
+                        'ошибка импорта — исходные данные вечера сохранены',
+                    );
+
+                    report($exception);
+                }
             }
         }
 
@@ -329,22 +405,25 @@ class ImportEvenings extends Page implements HasForms
 
         $paymentTypeName = trim($rowData[self::HEADERS['payment_type']] ?? '');
 
-        $paymentType = null;
+        if ($paymentTypeName === '') {
+            $skipped++;
+            $this->addSkipped($skippedList, $playerName, 'не указан тип оплаты');
 
-        if ($paymentTypeName !== '') {
-            $paymentType = PaymentType::where('type', $paymentTypeName)->first();
+            return 0;
+        }
 
-            if (! $paymentType) {
-                $skipped++;
-                $this->addSkipped($skippedList, $playerName, "тип оплаты не найден ({$paymentTypeName})");
+        $paymentType = PaymentType::where('type', $paymentTypeName)->first();
 
-                return 0;
-            }
+        if (! $paymentType) {
+            $skipped++;
+            $this->addSkipped($skippedList, $playerName, "тип оплаты не найден ({$paymentTypeName})");
+
+            return 0;
         }
 
         $evening->participants()->create([
             'player_id' => $player->id,
-            'payment_type_id' => $paymentType?->id,
+            'payment_type_id' => $paymentType->id,
             'paid_amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null),
             'is_new_player' => $this->bool($rowData[self::HEADERS['is_new_player']] ?? null),
             'is_full_payment' => $this->bool($rowData[self::HEADERS['is_full_payment']] ?? null),
@@ -359,6 +438,9 @@ class ImportEvenings extends Page implements HasForms
         $categoryName = trim($rowData[self::HEADERS['expense_category']] ?? '');
 
         if ($categoryName === '') {
+            $skipped++;
+            $this->addSkipped($skippedList, (string) $evening->id, 'не указана статья расхода');
+
             return 0;
         }
 

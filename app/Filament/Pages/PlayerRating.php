@@ -175,46 +175,35 @@ class PlayerRating extends Page implements HasTable
 
     private function getPlayersQuery(): Builder
     {
-        $firstVisit = EveningParticipant::query()
-            ->selectRaw('MIN(evenings.played_at)')
+        [$projectId, $eveningTypeId, $periodStart, $periodEnd] = $this->activeFilters();
+
+        $activity = EveningParticipant::query()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
-            ->whereColumn('evening_participants.player_id', 'players.id');
-
-        $this->applyJoinedEveningFilters($firstVisit);
-
-        $lastVisit = EveningParticipant::query()
-            ->selectRaw('MAX(evenings.played_at)')
-            ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
-            ->whereColumn('evening_participants.player_id', 'players.id');
-
-        $this->applyJoinedEveningFilters($lastVisit);
+            ->selectRaw('evening_participants.player_id, MAX(evenings.played_at) AS activity_last_visit')
+            ->groupBy('evening_participants.player_id');
 
         $query = Player::query()
-            ->whereHas(
-                'participations',
-                fn (Builder $query): Builder => $this->applyParticipationFilters($query),
-            )
-            ->withCount([
-                'participations' => fn (Builder $query): Builder => $this->applyParticipationFilters($query),
-            ])
-            ->withSum([
-                'participations' => fn (Builder $query): Builder => $this->applyParticipationFilters($query),
-            ], 'paid_amount')
-            ->addSelect([
-                'statistics_first_visit' => $firstVisit,
-                'statistics_last_visit' => $lastVisit,
-                'activity_last_visit' => $this->actualLastVisitQuery(),
-            ]);
+            ->join('evening_participants as rating_participants', 'rating_participants.player_id', '=', 'players.id')
+            ->join('evenings as rating_evenings', 'rating_evenings.id', '=', 'rating_participants.evening_id')
+            ->joinSub($activity, 'player_activity', function ($join): void {
+                $join->on('player_activity.player_id', '=', 'players.id');
+            })
+            ->when($projectId, fn (Builder $query): Builder => $query
+                ->where('rating_evenings.project_id', $projectId))
+            ->when($eveningTypeId, fn (Builder $query): Builder => $query
+                ->where('rating_evenings.evening_type_id', $eveningTypeId))
+            ->when($periodStart, fn (Builder $query): Builder => $query
+                ->where('rating_evenings.played_at', '>=', $periodStart)
+                ->where('rating_evenings.played_at', '<', $periodEnd))
+            ->select('players.*')
+            ->selectRaw('COUNT(rating_participants.id) AS participations_count')
+            ->selectRaw('COALESCE(SUM(rating_participants.paid_amount), 0) AS participations_sum_paid_amount')
+            ->selectRaw('MIN(rating_evenings.played_at) AS statistics_first_visit')
+            ->selectRaw('MAX(rating_evenings.played_at) AS statistics_last_visit')
+            ->selectRaw('player_activity.activity_last_visit AS activity_last_visit')
+            ->groupBy('players.id', 'player_activity.activity_last_visit');
 
         return $this->applyActivityStatusFilter($query);
-    }
-
-    private function actualLastVisitQuery(): Builder
-    {
-        return EveningParticipant::query()
-            ->selectRaw('MAX(evenings.played_at)')
-            ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
-            ->whereColumn('evening_participants.player_id', 'players.id');
     }
 
     private function applyActivityStatusFilter(Builder $query): Builder
@@ -225,59 +214,16 @@ class PlayerRating extends Page implements HasTable
         $ninetyDaysAgo = now()->startOfDay()->subDays(90);
 
         return match ($status) {
-            'active' => $query->where(
-                $this->actualLastVisitQuery(),
-                '>=',
-                $thirtyDaysAgo,
-            ),
+            'active' => $query->where('player_activity.activity_last_visit', '>=', $thirtyDaysAgo),
             'pause' => $query
-                ->where($this->actualLastVisitQuery(), '>=', $sixtyDaysAgo)
-                ->where($this->actualLastVisitQuery(), '<', $thirtyDaysAgo),
+                ->where('player_activity.activity_last_visit', '>=', $sixtyDaysAgo)
+                ->where('player_activity.activity_last_visit', '<', $thirtyDaysAgo),
             'inactive' => $query
-                ->where($this->actualLastVisitQuery(), '>=', $ninetyDaysAgo)
-                ->where($this->actualLastVisitQuery(), '<', $sixtyDaysAgo),
-            'dormant' => $query->where(
-                $this->actualLastVisitQuery(),
-                '<',
-                $ninetyDaysAgo,
-            ),
+                ->where('player_activity.activity_last_visit', '>=', $ninetyDaysAgo)
+                ->where('player_activity.activity_last_visit', '<', $sixtyDaysAgo),
+            'dormant' => $query->where('player_activity.activity_last_visit', '<', $ninetyDaysAgo),
             default => $query,
         };
-    }
-
-    private function applyParticipationFilters(Builder $query): Builder
-    {
-        [$projectId, $eveningTypeId, $periodStart, $periodEnd] = $this->activeFilters();
-
-        if (! $projectId && ! $eveningTypeId && ! $periodStart) {
-            return $query;
-        }
-
-        return $query->whereHas('evening', function (Builder $query) use (
-            $projectId,
-            $eveningTypeId,
-            $periodStart,
-            $periodEnd,
-        ): void {
-            $query
-                ->when($projectId, fn (Builder $query): Builder => $query->where('project_id', $projectId))
-                ->when($eveningTypeId, fn (Builder $query): Builder => $query->where('evening_type_id', $eveningTypeId))
-                ->when($periodStart, fn (Builder $query): Builder => $query
-                    ->where('played_at', '>=', $periodStart)
-                    ->where('played_at', '<', $periodEnd));
-        });
-    }
-
-    private function applyJoinedEveningFilters(Builder $query): void
-    {
-        [$projectId, $eveningTypeId, $periodStart, $periodEnd] = $this->activeFilters();
-
-        $query
-            ->when($projectId, fn (Builder $query): Builder => $query->where('evenings.project_id', $projectId))
-            ->when($eveningTypeId, fn (Builder $query): Builder => $query->where('evenings.evening_type_id', $eveningTypeId))
-            ->when($periodStart, fn (Builder $query): Builder => $query
-                ->where('evenings.played_at', '>=', $periodStart)
-                ->where('evenings.played_at', '<', $periodEnd));
     }
 
     private function activeFilters(): array
