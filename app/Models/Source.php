@@ -15,4 +15,9 @@ class Source extends Model
     {
         return $this->hasMany(Player::class);
     }
+
+    public function advertisingExpenses(): HasMany
+    {
+        return $this->hasMany(SourceAdvertisingExpense::class);
+    }
 }

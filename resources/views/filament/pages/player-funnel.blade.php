@@ -1213,7 +1213,7 @@
             aria-labelledby="player-dynamics-title"
             x-data="{
                 page: 1,
-                perPage: '12',
+                perPage: '6',
                 total: {{ count($playerDynamics['rows']) }},
                 get pages() {
                     return this.perPage === 'all'
