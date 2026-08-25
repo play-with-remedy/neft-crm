@@ -51,7 +51,7 @@ class CashBook extends Page implements HasTable
                         'expenses.category',
                     ])
             )
-            ->defaultSort('played_at', 'asc')
+            ->defaultSort('played_at', 'desc')
             ->columns([
                 TextColumn::make('row_number')
                     ->label('№')

@@ -9,7 +9,8 @@
         }
 
         .funnel-period {
-            width: min(100%, 260px);
+            position: relative;
+            width: min(100%, 620px);
         }
 
         .funnel-label {
@@ -29,6 +30,75 @@
             cursor: pointer;
         }
 
+        .funnel-period-input::marker {
+            color: rgb(107, 114, 128);
+        }
+
+        .funnel-period-options {
+            position: absolute;
+            z-index: 30;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid rgb(209, 213, 219);
+            border-radius: 8px;
+            background: white;
+            padding: 8px;
+            box-shadow: 0 12px 28px rgb(0 0 0 / 14%);
+        }
+
+        .funnel-period-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .funnel-period-option:hover {
+            background: rgb(243, 244, 246);
+        }
+
+        .funnel-period-option input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .funnel-period-limit {
+            padding: 6px 8px 2px;
+            color: rgb(107, 114, 128);
+            font-size: 12px;
+        }
+
+        .funnel-period-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+            padding: 8px 8px 2px;
+            border-top: 1px solid rgb(229, 231, 235);
+        }
+
+        .funnel-period-apply {
+            border-radius: 7px;
+            background: rgb(245, 158, 11);
+            padding: 7px 14px;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .funnel-period-apply:hover {
+            background: rgb(217, 119, 6);
+        }
+
+        .funnel-period-apply:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
         .funnel-period-input::-webkit-calendar-picker-indicator {
             cursor: pointer;
         }
@@ -38,6 +108,45 @@
             background: rgb(17, 24, 39);
             color: rgb(243, 244, 246);
             color-scheme: dark;
+        }
+
+        .dark .funnel-period-options {
+            border-color: rgb(75, 85, 99);
+            background: rgb(17, 24, 39);
+        }
+
+        .dark .funnel-period-option:hover {
+            background: rgb(31, 41, 55);
+        }
+
+        .dark .funnel-period-actions {
+            border-color: rgb(55, 65, 81);
+        }
+
+        .funnel-period-range {
+            display: grid;
+            grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto;
+            align-items: end;
+            gap: 10px;
+        }
+
+        .funnel-period-field label {
+            display: block;
+            margin-bottom: 5px;
+            color: rgb(107, 114, 128);
+            font-size: 12px;
+        }
+
+        .funnel-period-help {
+            margin-top: 6px;
+            color: rgb(107, 114, 128);
+            font-size: 12px;
+        }
+
+        .funnel-period-error {
+            margin-top: 6px;
+            color: rgb(220, 38, 38);
+            font-size: 13px;
         }
 
         .funnel-chart {
@@ -644,6 +753,10 @@
                 width: 100%;
             }
 
+            .funnel-period-range {
+                grid-template-columns: 1fr;
+            }
+
             .funnel-level {
                 min-height: 54px;
                 padding-inline: 20px;
@@ -676,17 +789,47 @@
 
     <div class="funnel-toolbar">
         <div class="funnel-period">
-            <label for="funnel-period" class="funnel-label">
-                Месяц
-            </label>
+            <span class="funnel-label">Период</span>
 
-            <input
-                id="funnel-period"
-                type="month"
-                wire:model.live="period"
-                x-on:click="$el.showPicker?.()"
-                class="funnel-period-input"
-            >
+            <div class="funnel-period-range">
+                <div class="funnel-period-field">
+                    <label for="funnel-period-from">С месяца</label>
+                    <input
+                        id="funnel-period-from"
+                        type="month"
+                        wire:model="pendingPeriodFrom"
+                        x-on:click="$el.showPicker?.()"
+                        class="funnel-period-input"
+                    >
+                </div>
+
+                <div class="funnel-period-field">
+                    <label for="funnel-period-until">По месяц</label>
+                    <input
+                        id="funnel-period-until"
+                        type="month"
+                        wire:model="pendingPeriodUntil"
+                        x-on:click="$el.showPicker?.()"
+                        class="funnel-period-input"
+                    >
+                </div>
+
+                <button
+                    type="button"
+                    class="funnel-period-apply"
+                    wire:click="applyPeriodRange"
+                >
+                    Применить
+                </button>
+            </div>
+
+            <div class="funnel-period-help">
+                Для одного месяца укажите одинаковый месяц в обоих полях. Максимальный период — 12 месяцев.
+            </div>
+
+            @error('periodRange')
+                <div class="funnel-period-error">{{ $message }}</div>
+            @enderror
         </div>
 
     </div>
@@ -694,7 +837,7 @@
     <div
         class="funnel-content"
         wire:loading.class="funnel-content--loading"
-        wire:target="period"
+        wire:target="applyPeriodRange"
     >
         @php
             $stats = $this->getFunnelStats();
@@ -710,7 +853,7 @@
                 <div class="funnel-shape">
                     <div class="funnel-total">
                         <div class="funnel-total__label">
-                            Новые игроки за месяц:
+                            Новые игроки за выбранный период:
                             <span class="funnel-total__value">{{ $stats['total'] }}</span>
                         </div>
                     </div>

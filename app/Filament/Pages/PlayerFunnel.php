@@ -10,6 +10,7 @@ use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Livewire\Attributes\Url;
 use Illuminate\Support\Facades\DB;
@@ -32,8 +33,13 @@ class PlayerFunnel extends Page
 
     protected string $view = 'filament.pages.player-funnel';
 
-    #[Url(as: 'month', history: true)]
-    public string $period = '';
+    /** @var array<int, string> */
+    #[Url(as: 'months', history: true)]
+    public array $periods = [];
+
+    public string $pendingPeriodFrom = '';
+
+    public string $pendingPeriodUntil = '';
 
     public string $lossPlayersHeading = '';
 
@@ -50,9 +56,8 @@ class PlayerFunnel extends Page
 
     public function mount(): void
     {
-        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->period)) {
-            $this->period = now()->format('Y-m');
-        }
+        $this->periods = $this->normalizePeriods($this->periods);
+        $this->setPendingPeriodRange();
 
         $this->playerDynamics = $this->getPlayerDynamicsStats();
         $this->attractionSources = Source::query()
@@ -61,11 +66,39 @@ class PlayerFunnel extends Page
             ->all();
     }
 
-    public function updatedPeriod(): void
+    public function applyPeriodRange(): void
     {
-        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->period)) {
-            $this->period = now()->format('Y-m');
+        $this->resetErrorBag();
+
+        if (! $this->isValidPeriod($this->pendingPeriodFrom)
+            || ! $this->isValidPeriod($this->pendingPeriodUntil)) {
+            $this->addError('periodRange', 'Укажите начальный и конечный месяц.');
+
+            return;
         }
+
+        $start = Carbon::createFromFormat('!Y-m', $this->pendingPeriodFrom)->startOfMonth();
+        $end = Carbon::createFromFormat('!Y-m', $this->pendingPeriodUntil)->startOfMonth();
+
+        if ($start->greaterThan($end)) {
+            $this->addError('periodRange', 'Начальный месяц не может быть позже конечного.');
+
+            return;
+        }
+
+        if ($start->diffInMonths($end) >= 12) {
+            $this->addError('periodRange', 'Можно выбрать период не более 12 месяцев.');
+
+            return;
+        }
+
+        $periods = [];
+
+        for ($month = $start->copy(); $month->lessThanOrEqualTo($end); $month->addMonth()) {
+            $periods[] = $month->format('Y-m');
+        }
+
+        $this->periods = array_reverse($periods);
 
         $this->periodPlayersCache = null;
     }
@@ -226,20 +259,18 @@ class PlayerFunnel extends Page
      */
     public function getTransitionTimingStats(): array
     {
-        $periodStart = Carbon::createFromFormat('!Y-m', $this->period)->startOfMonth();
-        $periodEnd = $periodStart->copy()->addMonth();
         $milestones = [1, 2, 3, 4, 5, 10, 21];
 
         $rankedVisits = EveningParticipant::query()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
             ->join('players', 'players.id', '=', 'evening_participants.player_id')
-            ->where('players.first_visit_at', '>=', $periodStart->toDateString())
-            ->where('players.first_visit_at', '<', $periodEnd->toDateString())
             ->selectRaw('evening_participants.player_id')
             ->selectRaw('evenings.played_at')
             ->selectRaw(
                 'ROW_NUMBER() OVER (PARTITION BY evening_participants.player_id ORDER BY evenings.played_at, evening_participants.id) AS visit_number'
             );
+
+        $this->applyPeriodFilter($rankedVisits, 'players.first_visit_at');
 
         $milestoneSelects = collect($milestones)
             ->map(fn (int $visit): string =>
@@ -379,19 +410,93 @@ class PlayerFunnel extends Page
             return $this->periodPlayersCache;
         }
 
-        $periodStart = Carbon::createFromFormat('!Y-m', $this->period)->startOfMonth();
-        $periodEnd = $periodStart->copy()->addMonth();
-
-        return $this->periodPlayersCache = Player::query()
+        $query = Player::query()
             ->select([
                 'players.id',
                 'players.nickname',
                 'players.first_visit_at',
                 'players.source_id',
             ])
-            ->withCount(['participations as evenings_count'])
-            ->where('first_visit_at', '>=', $periodStart->toDateString())
-            ->where('first_visit_at', '<', $periodEnd->toDateString())
-            ->get();
+            ->withCount(['participations as evenings_count']);
+
+        $this->applyPeriodFilter($query, 'players.first_visit_at');
+
+        return $this->periodPlayersCache = $query->get();
+    }
+
+    /**
+     * @param  array<int, mixed>  $periods
+     * @return array<int, string>
+     */
+    private function normalizePeriods(array $periods): array
+    {
+        $normalized = collect($periods)
+            ->filter(fn (mixed $period): bool => is_string($period)
+                && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period) === 1)
+            ->unique()
+            ->sortDesc()
+            ->take(12)
+            ->values()
+            ->all();
+
+        return $normalized === [] ? [now()->format('Y-m')] : $normalized;
+    }
+
+    private function setPendingPeriodRange(): void
+    {
+        $periods = collect($this->periods)->sort()->values();
+
+        $this->pendingPeriodFrom = (string) $periods->first();
+        $this->pendingPeriodUntil = (string) $periods->last();
+    }
+
+    private function isValidPeriod(string $period): bool
+    {
+        return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period) === 1;
+    }
+
+    /**
+     * @return array<int, array{start: Carbon, end: Carbon}>
+     */
+    private function selectedPeriodRanges(): array
+    {
+        $months = collect($this->normalizePeriods($this->periods))
+            ->map(fn (string $period): Carbon => Carbon::createFromFormat('!Y-m', $period)->startOfMonth())
+            ->sortBy(fn (Carbon $month): int => $month->timestamp)
+            ->values();
+
+        $ranges = [];
+
+        foreach ($months as $month) {
+            $lastIndex = array_key_last($ranges);
+
+            if ($lastIndex !== null && $ranges[$lastIndex]['end']->equalTo($month)) {
+                $ranges[$lastIndex]['end'] = $month->copy()->addMonth();
+
+                continue;
+            }
+
+            $ranges[] = [
+                'start' => $month->copy(),
+                'end' => $month->copy()->addMonth(),
+            ];
+        }
+
+        return $ranges;
+    }
+
+    private function applyPeriodFilter(Builder $query, string $column): void
+    {
+        $ranges = $this->selectedPeriodRanges();
+
+        $query->where(function (Builder $query) use ($column, $ranges): void {
+            foreach ($ranges as $range) {
+                $query->orWhere(function (Builder $query) use ($column, $range): void {
+                    $query
+                        ->where($column, '>=', $range['start']->toDateString())
+                        ->where($column, '<', $range['end']->toDateString());
+                });
+            }
+        });
     }
 }
