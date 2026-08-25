@@ -70,6 +70,14 @@
             gap: 18px;
         }
 
+        .acquisition-table-card--sources {
+            order: 1;
+        }
+
+        .acquisition-table-card--dynamics {
+            order: 2;
+        }
+
         .acquisition-table-card {
             overflow: hidden;
             border: 1px solid rgb(229, 231, 235);
@@ -387,7 +395,7 @@
         @endphp
 
         <section
-            class="acquisition-table-card"
+            class="acquisition-table-card acquisition-table-card--dynamics"
             x-data="{
                 page: 1,
                 perPage: '6',
@@ -471,7 +479,7 @@
             </div>
         </section>
 
-        <section class="acquisition-table-card">
+        <section class="acquisition-table-card acquisition-table-card--sources">
             <h2 class="acquisition-table-title">
                 Источники привлечения
                 <span class="acquisition-table-title-note">(за выбранный период)</span>
