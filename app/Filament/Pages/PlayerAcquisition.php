@@ -40,7 +40,7 @@ class PlayerAcquisition extends Page
 
     public string $pendingPeriodUntil = '';
 
-    /** @var array<int, array{id: int, name: string, new_players_count: int, new_players_percentage: float, advertising_expenses: float, cac: float, average_ltv: float, regular_conversion: float, paid_total: float, regular_players_count: int}> */
+    /** @var array<int, array{id: int, name: string, new_players_count: int, new_players_percentage: float, advertising_expenses: float, paid_channels_cac: float|null, average_ltv: float, regular_conversion: float, paid_total: float, regular_players_count: int}> */
     public array $sources = [];
 
     public string $editingSourceName = '';
@@ -82,7 +82,7 @@ class PlayerAcquisition extends Page
         ];
     }
 
-    /** @return array{new_players_count: int, new_players_percentage: float, advertising_expenses: float, cac: float, average_ltv: float, regular_conversion: float} */
+    /** @return array{new_players_count: int, new_players_percentage: float, advertising_expenses: float, general_cac: float|null, paid_channels_cac: float|null, average_ltv: float, regular_conversion: float} */
     public function getSourcesSummary(): array
     {
         $rows = collect($this->sources);
@@ -90,12 +90,20 @@ class PlayerAcquisition extends Page
         $advertisingExpenses = (float) $rows->sum('advertising_expenses');
         $paidTotal = (float) $rows->sum('paid_total');
         $regularPlayersCount = (int) $rows->sum('regular_players_count');
+        $paidChannelsNewPlayersCount = (int) $rows
+            ->where('advertising_expenses', '>', 0)
+            ->sum('new_players_count');
 
         return [
             'new_players_count' => $newPlayersCount,
             'new_players_percentage' => $newPlayersCount === 0 ? 0 : 100,
             'advertising_expenses' => $advertisingExpenses,
-            'cac' => $newPlayersCount === 0 ? 0 : round($advertisingExpenses / $newPlayersCount, 2),
+            'general_cac' => $newPlayersCount === 0
+                ? null
+                : round($advertisingExpenses / $newPlayersCount, 2),
+            'paid_channels_cac' => $paidChannelsNewPlayersCount === 0
+                ? null
+                : round($advertisingExpenses / $paidChannelsNewPlayersCount, 2),
             'average_ltv' => $newPlayersCount === 0 ? 0 : round($paidTotal / $newPlayersCount, 2),
             'regular_conversion' => $newPlayersCount === 0
                 ? 0
@@ -277,8 +285,8 @@ class PlayerAcquisition extends Page
                         ? 0
                         : round(($newPlayersCount / $totalNewPlayers) * 100, 1),
                     'advertising_expenses' => $advertisingExpenses,
-                    'cac' => $newPlayersCount === 0
-                        ? 0
+                    'paid_channels_cac' => $advertisingExpenses <= 0 || $newPlayersCount === 0
+                        ? null
                         : round($advertisingExpenses / $newPlayersCount, 2),
                     'average_ltv' => $newPlayersCount === 0
                         ? 0
@@ -304,7 +312,7 @@ class PlayerAcquisition extends Page
                 ? 0
                 : round(($playersWithoutSource / $totalNewPlayers) * 100, 1),
             'advertising_expenses' => 0,
-            'cac' => 0,
+            'paid_channels_cac' => null,
             'average_ltv' => $playersWithoutSource === 0
                 ? 0
                 : round($paidWithoutSource / $playersWithoutSource, 2),

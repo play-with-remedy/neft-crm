@@ -492,7 +492,8 @@
                             <th scope="col">Новых игроков</th>
                             <th scope="col">% от всех новых</th>
                             <th scope="col">Расходы на рекламу</th>
-                            <th scope="col">CAC</th>
+                            <th scope="col">CAC общий</th>
+                            <th scope="col">CAC платных каналов</th>
                             <th scope="col">Средний LTV</th>
                             <th scope="col">Конверсия в постоянных</th>
                         </tr>
@@ -566,13 +567,18 @@
                                         {{ number_format($source['advertising_expenses'], 2, ',', ' ') }} BYN
                                     @endif
                                 </td>
-                                <td>{{ number_format($source['cac'], 2, ',', ' ') }} BYN</td>
+                                <td>—</td>
+                                <td>
+                                    {{ $source['paid_channels_cac'] === null
+                                        ? '—'
+                                        : number_format($source['paid_channels_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
                                 <td>{{ number_format($source['average_ltv'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($source['regular_conversion'], 1, ',', ' ') }}%</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="acquisition-table-empty">Источники пока не добавлены.</td>
+                                <td colspan="8" class="acquisition-table-empty">Источники пока не добавлены.</td>
                             </tr>
                         @endforelse
 
@@ -582,7 +588,16 @@
                                 <td>{{ $sourcesSummary['new_players_count'] }}</td>
                                 <td>{{ number_format($sourcesSummary['new_players_percentage'], 1, ',', ' ') }}%</td>
                                 <td>{{ number_format($sourcesSummary['advertising_expenses'], 2, ',', ' ') }} BYN</td>
-                                <td>{{ number_format($sourcesSummary['cac'], 2, ',', ' ') }} BYN</td>
+                                <td>
+                                    {{ $sourcesSummary['general_cac'] === null
+                                        ? '—'
+                                        : number_format($sourcesSummary['general_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
+                                <td>
+                                    {{ $sourcesSummary['paid_channels_cac'] === null
+                                        ? '—'
+                                        : number_format($sourcesSummary['paid_channels_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
                                 <td>{{ number_format($sourcesSummary['average_ltv'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($sourcesSummary['regular_conversion'], 1, ',', ' ') }}%</td>
                             </tr>
