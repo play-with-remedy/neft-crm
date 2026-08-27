@@ -431,7 +431,8 @@
                             <th scope="col">Месяц первого визита</th>
                             <th scope="col">Новых игроков</th>
                             <th scope="col">Расходы на рекламу</th>
-                            <th scope="col">CAC</th>
+                            <th scope="col">CAC общий</th>
+                            <th scope="col">CAC платных каналов</th>
                             <th scope="col">Средний LTV</th>
                             <th scope="col">Средний чек</th>
                             <th scope="col">Средняя частота</th>
@@ -444,7 +445,16 @@
                                 <td>{{ $month['label'] }}</td>
                                 <td>{{ $month['new_players_count'] }}</td>
                                 <td>{{ number_format($month['advertising_expenses'], 2, ',', ' ') }} BYN</td>
-                                <td>{{ number_format($month['cac'], 2, ',', ' ') }} BYN</td>
+                                <td>
+                                    {{ $month['general_cac'] === null
+                                        ? '—'
+                                        : number_format($month['general_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
+                                <td>
+                                    {{ $month['paid_channels_cac'] === null
+                                        ? '—'
+                                        : number_format($month['paid_channels_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
                                 <td>{{ number_format($month['average_ltv'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($month['average_check'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($month['average_frequency'], 1, ',', ' ') }}</td>
@@ -452,7 +462,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="acquisition-table-empty">Пока нет игроков с датой первого посещения.</td>
+                                <td colspan="9" class="acquisition-table-empty">Пока нет игроков с датой первого посещения.</td>
                             </tr>
                         @endforelse
 
@@ -461,7 +471,16 @@
                                 <td>Итого / Среднее</td>
                                 <td>{{ $monthlySummary['new_players_count'] }}</td>
                                 <td>{{ number_format($monthlySummary['advertising_expenses'], 2, ',', ' ') }} BYN</td>
-                                <td>{{ number_format($monthlySummary['cac'], 2, ',', ' ') }} BYN</td>
+                                <td>
+                                    {{ $monthlySummary['general_cac'] === null
+                                        ? '—'
+                                        : number_format($monthlySummary['general_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
+                                <td>
+                                    {{ $monthlySummary['paid_channels_cac'] === null
+                                        ? '—'
+                                        : number_format($monthlySummary['paid_channels_cac'], 2, ',', ' ') . ' BYN' }}
+                                </td>
                                 <td>{{ number_format($monthlySummary['average_ltv'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($monthlySummary['average_check'], 2, ',', ' ') }} BYN</td>
                                 <td>{{ number_format($monthlySummary['average_frequency'], 1, ',', ' ') }}</td>

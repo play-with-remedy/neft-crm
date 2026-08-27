@@ -53,10 +53,10 @@ class PlayerAcquisition extends Page
     /** @var array<string, int|float|string|null> */
     public array $advertisingExpenses = [];
 
-    /** @var array<int, array{month: string, label: string, new_players_count: int, advertising_expenses: float, cac: float, average_ltv: float, average_check: float, average_frequency: float, regular_conversion: float, visits_count: int, paid_total: float, regular_players_count: int, observation_player_months: int}> */
+    /** @var array<int, array{month: string, label: string, new_players_count: int, advertising_expenses: float, general_cac: float|null, paid_channels_cac: float|null, average_ltv: float, average_check: float, average_frequency: float, regular_conversion: float, visits_count: int, paid_total: float, regular_players_count: int, observation_player_months: int, paid_channels_new_players_count: int}> */
     public array $monthlyDynamics = [];
 
-    /** @return array{new_players_count: int, advertising_expenses: float, cac: float, average_ltv: float, average_check: float, average_frequency: float, regular_conversion: float} */
+    /** @return array{new_players_count: int, advertising_expenses: float, general_cac: float|null, paid_channels_cac: float|null, average_ltv: float, average_check: float, average_frequency: float, regular_conversion: float} */
     public function getMonthlyDynamicsSummary(): array
     {
         $rows = collect($this->monthlyDynamics);
@@ -66,11 +66,17 @@ class PlayerAcquisition extends Page
         $paidTotal = (float) $rows->sum('paid_total');
         $regularPlayersCount = (int) $rows->sum('regular_players_count');
         $observationPlayerMonths = (int) $rows->sum('observation_player_months');
+        $paidChannelsNewPlayersCount = (int) $rows->sum('paid_channels_new_players_count');
 
         return [
             'new_players_count' => $newPlayersCount,
             'advertising_expenses' => $advertisingExpenses,
-            'cac' => $newPlayersCount === 0 ? 0 : round($advertisingExpenses / $newPlayersCount, 2),
+            'general_cac' => $advertisingExpenses <= 0 || $newPlayersCount === 0
+                ? null
+                : round($advertisingExpenses / $newPlayersCount, 2),
+            'paid_channels_cac' => $advertisingExpenses <= 0 || $paidChannelsNewPlayersCount === 0
+                ? null
+                : round($advertisingExpenses / $paidChannelsNewPlayersCount, 2),
             'average_ltv' => $newPlayersCount === 0 ? 0 : round($paidTotal / $newPlayersCount, 2),
             'average_check' => $visitsCount === 0 ? 0 : round($paidTotal / $visitsCount, 2),
             'average_frequency' => $observationPlayerMonths === 0
@@ -98,10 +104,10 @@ class PlayerAcquisition extends Page
             'new_players_count' => $newPlayersCount,
             'new_players_percentage' => $newPlayersCount === 0 ? 0 : 100,
             'advertising_expenses' => $advertisingExpenses,
-            'general_cac' => $newPlayersCount === 0
+            'general_cac' => $advertisingExpenses <= 0 || $newPlayersCount === 0
                 ? null
                 : round($advertisingExpenses / $newPlayersCount, 2),
-            'paid_channels_cac' => $paidChannelsNewPlayersCount === 0
+            'paid_channels_cac' => $advertisingExpenses <= 0 || $paidChannelsNewPlayersCount === 0
                 ? null
                 : round($advertisingExpenses / $paidChannelsNewPlayersCount, 2),
             'average_ltv' => $newPlayersCount === 0 ? 0 : round($paidTotal / $newPlayersCount, 2),
@@ -356,8 +362,25 @@ class PlayerAcquisition extends Page
             ->selectRaw('month, SUM(amount) AS amount_total')
             ->pluck('amount_total', 'month');
 
+        $paidChannelsNewPlayersByMonth = Player::query()
+            ->join('source_advertising_expenses as advertising_expenses', function ($join): void {
+                $join
+                    ->on('advertising_expenses.source_id', '=', 'players.source_id')
+                    ->whereRaw("advertising_expenses.month = DATE_TRUNC('month', players.first_visit_at)::date")
+                    ->where('advertising_expenses.amount', '>', 0);
+            })
+            ->whereNotNull('players.first_visit_at')
+            ->selectRaw('EXTRACT(YEAR FROM players.first_visit_at) AS visit_year')
+            ->selectRaw('EXTRACT(MONTH FROM players.first_visit_at) AS visit_month')
+            ->selectRaw('COUNT(players.id) AS players_count')
+            ->groupByRaw('EXTRACT(YEAR FROM players.first_visit_at), EXTRACT(MONTH FROM players.first_visit_at)')
+            ->get()
+            ->mapWithKeys(fn (Player $row): array => [
+                sprintf('%04d-%02d', (int) $row->visit_year, (int) $row->visit_month) => (int) $row->players_count,
+            ]);
+
         $this->monthlyDynamics = $rows
-            ->map(function (Player $row) use ($expensesByMonth): array {
+            ->map(function (Player $row) use ($expensesByMonth, $paidChannelsNewPlayersByMonth): array {
                 $month = sprintf('%04d-%02d', (int) $row->visit_year, (int) $row->visit_month);
                 $monthDate = "{$month}-01";
                 $newPlayersCount = (int) $row->new_players_count;
@@ -365,6 +388,7 @@ class PlayerAcquisition extends Page
                 $paidTotal = (float) $row->paid_total;
                 $regularPlayersCount = (int) $row->regular_players_count;
                 $advertisingExpenses = (float) $expensesByMonth->get($monthDate, 0);
+                $paidChannelsNewPlayersCount = (int) $paidChannelsNewPlayersByMonth->get($month, 0);
                 $observationMonths = max(
                     1,
                     (int) Carbon::createFromFormat('!Y-m', $month)
@@ -381,7 +405,12 @@ class PlayerAcquisition extends Page
                     ),
                     'new_players_count' => $newPlayersCount,
                     'advertising_expenses' => $advertisingExpenses,
-                    'cac' => $newPlayersCount === 0 ? 0 : round($advertisingExpenses / $newPlayersCount, 2),
+                    'general_cac' => $advertisingExpenses <= 0 || $newPlayersCount === 0
+                        ? null
+                        : round($advertisingExpenses / $newPlayersCount, 2),
+                    'paid_channels_cac' => $advertisingExpenses <= 0 || $paidChannelsNewPlayersCount === 0
+                        ? null
+                        : round($advertisingExpenses / $paidChannelsNewPlayersCount, 2),
                     'average_ltv' => $newPlayersCount === 0 ? 0 : round($paidTotal / $newPlayersCount, 2),
                     'average_check' => $visitsCount === 0 ? 0 : round($paidTotal / $visitsCount, 2),
                     'average_frequency' => $newPlayersCount === 0
@@ -394,6 +423,7 @@ class PlayerAcquisition extends Page
                     'paid_total' => $paidTotal,
                     'regular_players_count' => $regularPlayersCount,
                     'observation_player_months' => $newPlayersCount * $observationMonths,
+                    'paid_channels_new_players_count' => $paidChannelsNewPlayersCount,
                 ];
             })
             ->all();
