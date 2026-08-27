@@ -526,30 +526,9 @@ class ImportEvenings extends Page implements HasForms
     private function syncEveningsAutoIncrement(): void
     {
         $maxId = (int) DB::table('evenings')->max('id');
-        $driver = DB::connection()->getDriverName();
+        $nextId = $maxId + 1;
 
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $nextId = $maxId + 1;
-
-            DB::statement("ALTER TABLE evenings AUTO_INCREMENT = {$nextId}");
-
-            return;
-        }
-
-        if ($driver === 'pgsql') {
-            if ($maxId === 0) {
-                DB::statement(
-                    "SELECT setval(pg_get_serial_sequence('evenings', 'id'), 1, false)",
-                );
-
-                return;
-            }
-
-            DB::statement(
-                "SELECT setval(pg_get_serial_sequence('evenings', 'id'), ?, true)",
-                [$maxId],
-            );
-        }
+        DB::statement("ALTER TABLE evenings AUTO_INCREMENT = {$nextId}");
     }
 
     private function addSkipped(array &$skippedList, string $item, string $reason): void

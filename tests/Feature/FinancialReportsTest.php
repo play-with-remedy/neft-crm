@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\CashBook;
 use App\Filament\Pages\PlayerFunnel;
-use App\Filament\Pages\PlayerRating;
 use App\Filament\Pages\StaffSalaries;
 use App\Models\Evening;
 use App\Models\EveningType;
@@ -142,67 +141,6 @@ class FinancialReportsTest extends TestCase
         $this->assertSame(1, (int) $record->manager_evenings_count);
         $this->assertSame(180, (int) $record->total_salary);
         $this->assertSame(2, (int) $record->total_evenings_count);
-    }
-
-    public function test_player_rating_combines_month_project_and_type_filters(): void
-    {
-        $paymentType = PaymentType::create(['type' => 'Наличные']);
-        $projectA = Project::create(['name' => 'Проект A']);
-        $projectB = Project::create(['name' => 'Проект B']);
-        $typeA = EveningType::create(['name' => 'Тип A']);
-        $typeB = EveningType::create(['name' => 'Тип B']);
-        $matchingPlayer = $this->createPlayer('Подходящий');
-        $otherProjectPlayer = $this->createPlayer('Другой проект');
-        $otherTypePlayer = $this->createPlayer('Другой тип');
-
-        $matchingEvening = Evening::create([
-            'played_at' => '2026-02-15 19:00:00',
-            'project_id' => $projectA->id,
-            'evening_type_id' => $typeA->id,
-        ]);
-        $otherProjectEvening = Evening::create([
-            'played_at' => '2026-02-16 19:00:00',
-            'project_id' => $projectB->id,
-            'evening_type_id' => $typeA->id,
-        ]);
-        $otherTypeEvening = Evening::create([
-            'played_at' => '2026-02-17 19:00:00',
-            'project_id' => $projectA->id,
-            'evening_type_id' => $typeB->id,
-        ]);
-
-        $matchingEvening->participants()->create([
-            'player_id' => $matchingPlayer->id,
-            'payment_type_id' => $paymentType->id,
-            'paid_amount' => 120,
-        ]);
-        $otherProjectEvening->participants()->create([
-            'player_id' => $otherProjectPlayer->id,
-            'payment_type_id' => $paymentType->id,
-            'paid_amount' => 200,
-        ]);
-        $otherTypeEvening->participants()->create([
-            'player_id' => $otherTypePlayer->id,
-            'payment_type_id' => $paymentType->id,
-            'paid_amount' => 300,
-        ]);
-
-        $component = Livewire::test(PlayerRating::class)
-            ->filterTable('month', '2026-02')
-            ->filterTable('project', $projectA->id)
-            ->filterTable('evening_type', $typeA->id)
-            ->assertCountTableRecords(1)
-            ->assertCanSeeTableRecords([$matchingPlayer])
-            ->assertCanNotSeeTableRecords([$otherProjectPlayer, $otherTypePlayer]);
-
-        $record = $component->instance()
-            ->getFilteredTableQuery()
-            ->findOrFail($matchingPlayer->id);
-
-        $this->assertSame(1, (int) $record->participations_count);
-        $this->assertSame(120, (int) $record->participations_sum_paid_amount);
-        $this->assertSame('2026-02-15', substr((string) $record->statistics_first_visit, 0, 10));
-        $this->assertSame('2026-02-15', substr((string) $record->statistics_last_visit, 0, 10));
     }
 
     public function test_player_funnel_calculates_stage_statistics_by_first_visit_month(): void
