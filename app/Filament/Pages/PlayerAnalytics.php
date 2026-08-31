@@ -11,6 +11,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -37,11 +38,18 @@ class PlayerAnalytics extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        [$activityPeriodFrom, $activityPeriodUntil] = $this->activityPeriod();
+
         return $table
             ->query(fn (): Builder => Player::query()
                 ->select('players.*')
                 ->with('source:id,name')
-                ->withCount(['participations as visits_count'])
+                ->withCount([
+                    'participations as visits_count',
+                    'participations as recent_visits_count' => fn (Builder $query): Builder => $query
+                        ->whereHas('evening', fn (Builder $query): Builder => $query
+                            ->whereBetween('played_at', [$activityPeriodFrom, $activityPeriodUntil])),
+                ])
                 ->withSum(['participations as ltv_total'], 'paid_amount')
                 ->addSelect([
                     'last_visit_at' => EveningParticipant::query()
@@ -59,6 +67,8 @@ class PlayerAnalytics extends Page implements HasTable
                 TextColumn::make('status')
                     ->label('Статус')
                     ->state(fn (Player $record): string => $this->funnelStatusKey((int) $record->visits_count))
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderBy('visits_count', $direction))
                     ->formatStateUsing(fn (string $state): HtmlString => new HtmlString(
                         view(
                             'filament.pages.partials.player-status-badge',
@@ -71,7 +81,24 @@ class PlayerAnalytics extends Page implements HasTable
 
                 TextColumn::make('activity_status')
                     ->label('Статус активности')
-                    ->state(fn (): string => '—'),
+                    ->state(fn (Player $record): string => $record->activity_status_label)
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw(
+                            "CASE
+                                WHEN manual_activity_status = ? THEN 3
+                                WHEN recent_visits_count >= ? THEN 2
+                                ELSE 1
+                            END {$direction}",
+                            [
+                                Player::MANUAL_ACTIVITY_STATUS_SEASON_PLAYER,
+                                Player::CLUB_PLAYER_VISITS_THRESHOLD,
+                            ],
+                        ))
+                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString(
+                        view('filament.pages.partials.player-activity-status-badge', [
+                            'label' => $state,
+                        ])->render()
+                    )),
 
                 TextColumn::make('source.name')
                     ->label('Источник')
@@ -101,23 +128,105 @@ class PlayerAnalytics extends Page implements HasTable
                     ->label('LTV всего')
                     ->state(fn (Player $record): float => (float) $record->ltv_total)
                     ->formatStateUsing(fn ($state): string => number_format((float) $state, 2, ',', ' ') . ' BYN')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderBy('ltv_total', $direction))
                     ->extraCellAttributes(['class' => 'player-analytics-centered-cell']),
-
-                TextColumn::make('average_check')
-                    ->label('Средний чек')
-                    ->state(fn (Player $record): ?float => (int) $record->visits_count === 0
-                        ? null
-                        : (float) $record->ltv_total / (int) $record->visits_count)
-                    ->formatStateUsing(fn ($state): string => number_format((float) $state, 2, ',', ' ') . ' BYN')
-                    ->extraCellAttributes(['class' => 'player-analytics-centered-cell'])
-                    ->placeholder('—'),
 
                 TextColumn::make('duration')
                     ->label('Продолжительность')
                     ->state(fn (Player $record): string => $this->formatDuration($record))
                     ->extraCellAttributes(['class' => 'player-analytics-centered-cell']),
             ])
+            ->filters([
+                SelectFilter::make('funnel_status')
+                    ->label('Статус')
+                    ->placeholder('Все статусы')
+                    ->options([
+                        'none' => 'Без статуса',
+                        'new' => 'Новый',
+                        'returned' => 'Вернулся',
+                        'interested' => 'Заинтересован',
+                        'engaged' => 'Вовлечён',
+                        'contender' => 'Претендент',
+                        'active' => 'Активный',
+                        'regular' => 'Постоянный',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $this->filterByFunnelStatus(
+                        $query,
+                        $data['value'] ?? null,
+                    )),
+
+                SelectFilter::make('activity_status')
+                    ->label('Статус активности')
+                    ->placeholder('Все статусы активности')
+                    ->options([
+                        'season_player' => 'Игрок сезона',
+                        'club_player' => 'Клубный игрок',
+                        'club_guest' => 'Гость клуба',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $this->filterByActivityStatus(
+                        $query,
+                        $data['value'] ?? null,
+                    )),
+            ])
             ->defaultSort('visits_count', 'desc');
+    }
+
+    private function filterByFunnelStatus(Builder $query, ?string $status): Builder
+    {
+        return match ($status) {
+            'none' => $query->doesntHave('participations'),
+            'new' => $query->has('participations', '=', 1),
+            'returned' => $query->has('participations', '=', 2),
+            'interested' => $query->has('participations', '=', 3),
+            'engaged' => $query->has('participations', '=', 4),
+            'contender' => $query
+                ->has('participations', '>=', 5)
+                ->has('participations', '<=', 9),
+            'active' => $query
+                ->has('participations', '>=', 10)
+                ->has('participations', '<=', 20),
+            'regular' => $query->has('participations', '>=', 21),
+            default => $query,
+        };
+    }
+
+    private function filterByActivityStatus(Builder $query, ?string $status): Builder
+    {
+        [$from, $until] = $this->activityPeriod();
+        $recentVisits = fn (Builder $query): Builder => $query
+            ->whereHas('evening', fn (Builder $query): Builder => $query
+                ->whereBetween('played_at', [$from, $until]));
+
+        return match ($status) {
+            'season_player' => $query->where(
+                'manual_activity_status',
+                Player::MANUAL_ACTIVITY_STATUS_SEASON_PLAYER,
+            ),
+            'club_player' => $query
+                ->whereNull('manual_activity_status')
+                ->whereHas(
+                    'participations',
+                    $recentVisits,
+                    '>=',
+                    Player::CLUB_PLAYER_VISITS_THRESHOLD,
+                ),
+            'club_guest' => $query
+                ->whereNull('manual_activity_status')
+                ->whereHas(
+                    'participations',
+                    $recentVisits,
+                    '<',
+                    Player::CLUB_PLAYER_VISITS_THRESHOLD,
+                ),
+            default => $query,
+        };
+    }
+
+    /** @return array{0: Carbon, 1: Carbon} */
+    private function activityPeriod(): array
+    {
+        return [now()->startOfMonth()->subMonthsNoOverflow(4), now()];
     }
 
     private function formatDuration(Player $player): string

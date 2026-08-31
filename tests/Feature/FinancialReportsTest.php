@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\CashBook;
 use App\Filament\Pages\MonthlyFinances;
+use App\Filament\Pages\PlayerAnalytics;
 use App\Filament\Pages\PlayerFunnel;
 use App\Filament\Pages\StaffSalaries;
 use App\Models\Evening;
@@ -344,6 +345,49 @@ class FinancialReportsTest extends TestCase
         $this->assertSame(1, $dynamics['2026-01']['counts']['new']);
         $this->assertSame(2, $dynamics['2026-02']['counts']['new']);
         $this->assertSame(1, $dynamics['2026-02']['counts']['returned']);
+    }
+
+    public function test_player_analytics_computed_columns_can_be_sorted(): void
+    {
+        Player::create([
+            'nickname' => 'Игрок сезона',
+            'manual_activity_status' => Player::MANUAL_ACTIVITY_STATUS_SEASON_PLAYER,
+        ]);
+        Player::create(['nickname' => 'Гость клуба']);
+
+        Livewire::test(PlayerAnalytics::class)
+            ->sortTable('status')
+            ->assertCountTableRecords(2)
+            ->sortTable('activity_status')
+            ->assertCountTableRecords(2)
+            ->sortTable('ltv_total')
+            ->assertCountTableRecords(2)
+            ->assertDontSee('Средний чек');
+    }
+
+    public function test_player_analytics_can_filter_by_both_status_types(): void
+    {
+        $seasonPlayer = Player::create([
+            'nickname' => 'Игрок сезона',
+            'manual_activity_status' => Player::MANUAL_ACTIVITY_STATUS_SEASON_PLAYER,
+        ]);
+        $clubGuest = Player::create(['nickname' => 'Гость клуба']);
+
+        Livewire::test(PlayerAnalytics::class)
+            ->filterTable('funnel_status', 'none')
+            ->assertCountTableRecords(2);
+
+        Livewire::test(PlayerAnalytics::class)
+            ->filterTable('activity_status', 'season_player')
+            ->assertCountTableRecords(1)
+            ->assertCanSeeTableRecords([$seasonPlayer])
+            ->assertCanNotSeeTableRecords([$clubGuest]);
+
+        Livewire::test(PlayerAnalytics::class)
+            ->filterTable('activity_status', 'club_guest')
+            ->assertCountTableRecords(1)
+            ->assertCanSeeTableRecords([$clubGuest])
+            ->assertCanNotSeeTableRecords([$seasonPlayer]);
     }
 
     private function createPlayer(string $nickname): Player

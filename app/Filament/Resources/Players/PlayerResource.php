@@ -143,6 +143,12 @@ class PlayerResource extends Resource
                     ->relationship('firstHost', 'nickname')
                     ->preload(),
 
+                Select::make('manual_activity_status')
+                    ->label('Статус активности')
+                    ->placeholder('Рассчитывать автоматически')
+                    ->options(Player::manualActivityStatusOptions())
+                    ->native(false),
+
                 Textarea::make('notes')
                     ->label('Комментарии')
                     ->rows(4)
