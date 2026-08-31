@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('autumn_campaigns', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->date('starts_at');
+            $table->date('ends_at');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+
+            $table->unique(['starts_at', 'ends_at']);
+            $table->index(['is_active', 'starts_at', 'ends_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('autumn_campaigns');
+    }
+};

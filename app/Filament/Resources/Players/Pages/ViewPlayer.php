@@ -21,6 +21,12 @@ class ViewPlayer extends ViewRecord
                 ->color('primary')
                 ->url(fn (): string => PlayerResource::getUrl('statistics', ['record' => $this->record])),
 
+            Action::make('autumn_case')
+                ->label('Осеннее дело')
+                ->icon('/images/autumn-leaf.svg?v=3')
+                ->color('warning')
+                ->url(fn (): string => PlayerResource::getUrl('autumn-case', ['record' => $this->record])),
+
             EditAction::make()
                 ->label('Редактировать'),
         ];

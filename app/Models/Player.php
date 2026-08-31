@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Player extends Model
 {
@@ -41,6 +42,16 @@ class Player extends Model
     public function participations(): HasMany
     {
         return $this->hasMany(EveningParticipant::class);
+    }
+
+    public function autumnCases(): HasMany
+    {
+        return $this->hasMany(AutumnCase::class);
+    }
+
+    public function latestAutumnCase(): HasOne
+    {
+        return $this->hasOne(AutumnCase::class)->latestOfMany();
     }
 
     public function getGenderLabelAttribute(): string

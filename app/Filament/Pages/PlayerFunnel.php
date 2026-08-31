@@ -320,6 +320,17 @@ class PlayerFunnel extends Page
     private function getPlayerDynamicsStats(): array
     {
         $stages = collect($this->stageDefinitions());
+        [$visitYearExpression, $visitMonthExpression] = match (DB::connection()->getDriverName()) {
+            'sqlite' => [
+                "CAST(strftime('%Y', players.first_visit_at) AS INTEGER)",
+                "CAST(strftime('%m', players.first_visit_at) AS INTEGER)",
+            ],
+            default => [
+                'EXTRACT(YEAR FROM players.first_visit_at)',
+                'EXTRACT(MONTH FROM players.first_visit_at)',
+            ],
+        };
+
         $participationCounts = EveningParticipant::query()
             ->selectRaw('player_id, COUNT(*) AS evenings_count')
             ->groupBy('player_id');
@@ -329,8 +340,8 @@ class PlayerFunnel extends Page
                 $join->on('player_visits.player_id', '=', 'players.id');
             })
             ->whereNotNull('players.first_visit_at')
-            ->selectRaw('EXTRACT(YEAR FROM players.first_visit_at) AS visit_year')
-            ->selectRaw('EXTRACT(MONTH FROM players.first_visit_at) AS visit_month')
+            ->selectRaw("{$visitYearExpression} AS visit_year")
+            ->selectRaw("{$visitMonthExpression} AS visit_month")
             ->selectRaw('COUNT(*) AS new_count');
 
         $stages
@@ -343,7 +354,7 @@ class PlayerFunnel extends Page
             });
 
         $rows = $query
-            ->groupByRaw('EXTRACT(YEAR FROM players.first_visit_at), EXTRACT(MONTH FROM players.first_visit_at)')
+            ->groupByRaw("{$visitYearExpression}, {$visitMonthExpression}")
             ->orderByDesc('visit_year')
             ->orderByDesc('visit_month')
             ->get()

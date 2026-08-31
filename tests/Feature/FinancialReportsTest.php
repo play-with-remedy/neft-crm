@@ -3,11 +3,15 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\CashBook;
+use App\Filament\Pages\MonthlyFinances;
 use App\Filament\Pages\PlayerFunnel;
 use App\Filament\Pages\StaffSalaries;
 use App\Models\Evening;
 use App\Models\EveningType;
 use App\Models\ExpenseCategory;
+use App\Models\FinancialCategory;
+use App\Models\FinancialCategoryValue;
+use App\Models\FinancialPeriodValue;
 use App\Models\Host;
 use App\Models\PaymentType;
 use App\Models\Player;
@@ -105,6 +109,147 @@ class FinancialReportsTest extends TestCase
         $this->assertSame(50, $paymentTotals['Карта']['value']);
     }
 
+    public function test_monthly_finances_calculates_rows_and_revenue_change(): void
+    {
+        $paymentType = PaymentType::create(['type' => 'Наличные']);
+        $host = Host::create(['nickname' => 'Ведущий']);
+        $expenseCategory = ExpenseCategory::create(['name' => 'Аренда']);
+        $player = $this->createPlayer('Игрок финансовой таблицы');
+        $manualExpenseCategory = FinancialCategory::create([
+            'name' => 'Реклама',
+            'sort_order' => 1,
+        ]);
+        FinancialPeriodValue::create([
+            'period' => '2026-01-01',
+            'corporate_revenue' => 50,
+        ]);
+        FinancialPeriodValue::create([
+            'period' => '2026-02-01',
+            'corporate_revenue' => 50,
+        ]);
+        FinancialCategoryValue::create([
+            'financial_category_id' => $manualExpenseCategory->id,
+            'period' => '2026-01-01',
+            'amount' => 40,
+        ]);
+        FinancialCategoryValue::create([
+            'financial_category_id' => $manualExpenseCategory->id,
+            'period' => '2026-02-01',
+            'amount' => 25,
+        ]);
+
+        $january = Evening::create([
+            'played_at' => '2026-01-15 19:00:00',
+            'other_expenses' => 5,
+        ]);
+        $january->participants()->create([
+            'player_id' => $player->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 100,
+        ]);
+        $january->staff()->create([
+            'host_id' => $host->id,
+            'role' => 'host',
+            'salary' => 20,
+        ]);
+        $january->expenses()->create([
+            'expense_category_id' => $expenseCategory->id,
+            'amount' => 10,
+        ]);
+
+        $february = Evening::create([
+            'played_at' => '2026-02-15 19:00:00',
+            'other_expenses' => 10,
+        ]);
+        $february->participants()->create([
+            'player_id' => $player->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 150,
+        ]);
+        $february->staff()->create([
+            'host_id' => $host->id,
+            'role' => 'host',
+            'salary' => 30,
+        ]);
+        $february->expenses()->create([
+            'expense_category_id' => $expenseCategory->id,
+            'amount' => 20,
+        ]);
+
+        $component = Livewire::withQueryParams([
+            'from' => '2026-01',
+            'until' => '2026-02',
+        ])->test(MonthlyFinances::class);
+
+        $rows = collect($component->get('rows'))->keyBy('month');
+
+        $this->assertSame(['2026-02', '2026-01'], collect($component->get('rows'))->pluck('month')->all());
+        $this->assertSame('Январь 2026', $rows['2026-01']['label']);
+        $this->assertSame(150.0, $rows['2026-01']['revenue']);
+        $this->assertSame(75.0, $rows['2026-01']['expenses']);
+        $this->assertSame(75.0, $rows['2026-01']['profit']);
+        $this->assertSame(50.0, $rows['2026-01']['margin']);
+        $this->assertNull($rows['2026-01']['revenue_change']);
+        $this->assertSame(200.0, $rows['2026-02']['revenue']);
+        $this->assertSame(85.0, $rows['2026-02']['expenses']);
+        $this->assertSame(115.0, $rows['2026-02']['profit']);
+        $this->assertSame(57.5, $rows['2026-02']['margin']);
+        $this->assertSame(33.3, $rows['2026-02']['revenue_change']);
+
+        $component
+            ->set('comparisonMonthA', '2026-01')
+            ->set('comparisonMonthB', '2026-02')
+            ->call('applyComparison');
+
+        $comparisonSummary = collect($component->get('comparisonSummaryRows'))->keyBy('label');
+        $comparisonCategories = collect($component->get('comparisonCategoryRows'))->keyBy('id');
+
+        $this->assertSame(150.0, $comparisonSummary['Общая выручка']['value_a']);
+        $this->assertSame(200.0, $comparisonSummary['Общая выручка']['value_b']);
+        $this->assertSame(50.0, $comparisonSummary['Общая выручка']['difference']);
+        $this->assertSame(33.3, $comparisonSummary['Общая выручка']['change']);
+        $this->assertSame(75.0, $comparisonSummary['Общие расходы']['value_a']);
+        $this->assertSame(85.0, $comparisonSummary['Общие расходы']['value_b']);
+        $this->assertSame(75.0, $comparisonSummary['Чистая прибыль']['value_a']);
+        $this->assertSame(115.0, $comparisonSummary['Чистая прибыль']['value_b']);
+        $this->assertSame(7.5, $comparisonSummary['Маржа']['difference']);
+        $this->assertSame(40.0, $comparisonCategories[$manualExpenseCategory->id]['value_a']);
+        $this->assertSame(25.0, $comparisonCategories[$manualExpenseCategory->id]['value_b']);
+        $this->assertSame(-15.0, $comparisonCategories[$manualExpenseCategory->id]['difference']);
+        $this->assertSame(-37.5, $comparisonCategories[$manualExpenseCategory->id]['change']);
+
+        $component
+            ->call('sortTable', 'revenue')
+            ->assertSet('sortColumn', 'revenue')
+            ->assertSet('sortDirection', 'desc')
+            ->call('sortTable', 'revenue')
+            ->assertSet('sortDirection', 'asc');
+
+        $this->assertSame(
+            ['2026-01', '2026-02'],
+            collect($component->get('rows'))->pluck('month')->all(),
+        );
+    }
+
+    public function test_monthly_finances_accepts_from_query_parameter_without_until(): void
+    {
+        Evening::create(['played_at' => '2026-02-15 19:00:00']);
+
+        Livewire::withQueryParams(['from' => '2026-01'])
+            ->test(MonthlyFinances::class)
+            ->assertSet('periodFrom', '2026-01')
+            ->assertSet('periodUntil', '2026-02');
+    }
+
+    public function test_monthly_finances_defaults_to_current_year(): void
+    {
+        $this->travelTo('2026-08-30 12:00:00');
+
+        Livewire::test(MonthlyFinances::class)
+            ->assertSet('periodFrom', '2026-01')
+            ->assertSet('periodUntil', '2026-08');
+    }
+
     public function test_staff_salary_month_filter_limits_sums_and_unique_evenings(): void
     {
         $host = Host::create(['nickname' => 'Сотрудник']);
@@ -174,9 +319,9 @@ class FinancialReportsTest extends TestCase
             'payment_type_id' => $paymentType->id,
         ]);
 
-        $component = Livewire::withQueryParams(['month' => '2026-02'])
+        $component = Livewire::withQueryParams(['months' => ['2026-02']])
             ->test(PlayerFunnel::class)
-            ->assertSet('period', '2026-02');
+            ->assertSet('periods', ['2026-02']);
 
         $stats = $component->instance()->getFunnelStats();
         $timings = collect($component->instance()->getTransitionTimingStats())->keyBy('key');

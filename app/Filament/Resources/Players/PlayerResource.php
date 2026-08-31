@@ -6,6 +6,7 @@ use App\Filament\Resources\Players\Pages\CreatePlayer;
 use App\Filament\Resources\Players\Pages\EditPlayer;
 use App\Filament\Resources\Players\Pages\ListPlayers;
 use App\Filament\Resources\Players\Pages\PlayerStatistics;
+use App\Filament\Resources\Players\Pages\PlayerAutumnCase;
 use App\Filament\Resources\Players\Pages\ViewPlayer;
 use App\Filament\Resources\Players\Schemas\PlayerInfolist;
 use App\Enums\NavigationGroup;
@@ -295,6 +296,7 @@ class PlayerResource extends Resource
             'create' => CreatePlayer::route('/create'),
             'view' => ViewPlayer::route('/{record}'),
             'statistics' => PlayerStatistics::route('/{record}/statistics'),
+            'autumn-case' => PlayerAutumnCase::route('/{record}/autumn-case'),
             'edit' => EditPlayer::route('/{record}/edit'),
         ];
     }
