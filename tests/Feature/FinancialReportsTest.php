@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\CashBook;
+use App\Filament\Pages\LtvAnalysis;
 use App\Filament\Pages\MonthlyFinances;
 use App\Filament\Pages\PlayerAnalytics;
 use App\Filament\Pages\PlayerFunnel;
@@ -388,6 +389,82 @@ class FinancialReportsTest extends TestCase
             ->assertCountTableRecords(1)
             ->assertCanSeeTableRecords([$clubGuest])
             ->assertCanNotSeeTableRecords([$seasonPlayer]);
+    }
+
+    public function test_ltv_analysis_calculates_metrics_for_first_visit_cohort(): void
+    {
+        $paymentType = PaymentType::create(['type' => 'Наличные']);
+        $firstPlayer = Player::create([
+            'nickname' => 'Первый новичок',
+            'first_visit_at' => '2026-01-05',
+        ]);
+        $secondPlayer = Player::create([
+            'nickname' => 'Второй новичок',
+            'first_visit_at' => '2026-01-10',
+        ]);
+        $firstEvening = Evening::create(['played_at' => '2026-01-05 19:00:00']);
+        $secondEvening = Evening::create(['played_at' => '2026-01-10 19:00:00']);
+        $laterEvening = Evening::create(['played_at' => '2026-02-04 19:00:00']);
+
+        $firstEvening->participants()->create([
+            'player_id' => $firstPlayer->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 100,
+        ]);
+        $laterEvening->participants()->create([
+            'player_id' => $firstPlayer->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 200,
+        ]);
+        $secondEvening->participants()->create([
+            'player_id' => $secondPlayer->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 50,
+        ]);
+
+        $component = Livewire::withQueryParams([
+            'from' => '2026-01',
+            'until' => '2026-01',
+        ])->test(LtvAnalysis::class);
+
+        $this->assertSame(2, $component->get('summary')['new_players_count']);
+        $this->assertSame(350.0, $component->get('summary')['revenue']);
+        $this->assertSame(175.0, $component->get('summary')['average_ltv']);
+        $this->assertSame(1.5, $component->get('summary')['average_visits']);
+        $this->assertSame(15.0, $component->get('summary')['average_lifetime_days']);
+        $this->assertSame('2026-01', $component->get('rows')[0]['month']);
+
+        foreach ([
+            'new_players_count',
+            'revenue',
+            'average_ltv',
+            'average_visits',
+            'average_lifetime_days',
+        ] as $column) {
+            $component
+                ->call('sortTable', $column)
+                ->assertSet('sortColumn', $column);
+        }
+    }
+
+    public function test_ltv_analysis_paginates_month_rows_on_the_server(): void
+    {
+        $component = Livewire::withQueryParams([
+            'from' => '2026-01',
+            'until' => '2026-08',
+        ])->test(LtvAnalysis::class);
+
+        $this->assertCount(6, $component->instance()->getVisibleRows());
+        $this->assertSame(2, $component->instance()->getTablePages());
+
+        $component->call('nextTablePage')->assertSet('tablePage', 2);
+
+        $this->assertCount(2, $component->instance()->getVisibleRows());
+
+        $component->set('tablePerPage', '3')->assertSet('tablePage', 1);
+
+        $this->assertCount(3, $component->instance()->getVisibleRows());
+        $this->assertSame(3, $component->instance()->getTablePages());
     }
 
     private function createPlayer(string $nickname): Player
