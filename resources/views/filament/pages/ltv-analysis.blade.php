@@ -49,8 +49,13 @@
 
         .ltv-chart-card { overflow: hidden; margin-top: 20px; border: 1px solid rgb(229, 231, 235); border-radius: 12px; background: white; }
         .dark .ltv-chart-card { border-color: rgb(63, 63, 70); background: rgb(24, 24, 27); }
-        .ltv-chart__title { padding: 16px 18px; border-bottom: 1px solid rgb(229, 231, 235); font-size: 16px; font-weight: 700; }
-        .dark .ltv-chart__title { border-color: rgb(63, 63, 70); }
+        .ltv-chart__header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 18px; border-bottom: 1px solid rgb(229, 231, 235); }
+        .dark .ltv-chart__header { border-color: rgb(63, 63, 70); }
+        .ltv-chart__title { font-size: 16px; font-weight: 700; }
+        .ltv-chart__tabs { display: inline-flex; gap: 6px; }
+        .ltv-chart__tab { border: 1px solid rgb(209, 213, 219); border-radius: 7px; background: white; padding: 7px 10px; color: rgb(75, 85, 99); font-size: 12px; font-weight: 600; }
+        .ltv-chart__tab--active { border-color: rgb(245, 158, 11); background: rgb(245, 158, 11); color: white; }
+        .dark .ltv-chart__tab:not(.ltv-chart__tab--active) { border-color: rgb(82, 82, 91); background: rgb(39, 39, 42); color: rgb(212, 212, 216); }
         .ltv-chart__wrap { overflow-x: auto; padding: 12px 10px 6px; }
         .ltv-chart { display: block; height: 320px; }
         .ltv-chart__grid { stroke: rgb(229, 231, 235); stroke-width: 1; }
@@ -70,6 +75,7 @@
             .ltv-period, .ltv-period__range { width: 100%; }
             .ltv-period__range { grid-template-columns: 1fr; }
             .ltv-summary { grid-template-columns: 1fr; }
+            .ltv-chart__header { align-items: flex-start; flex-direction: column; }
         }
     </style>
 
@@ -85,19 +91,31 @@
         $chartBottom = 58;
         $chartPlotWidth = $chartWidth - $chartLeft - $chartRight;
         $chartPlotHeight = $chartHeight - $chartTop - $chartBottom;
-        $chartMaximum = max(1, (float) $chartRows->max('average_ltv'));
-        $chartPoints = $chartRows->map(function ($row, $index) use ($chartRows, $chartLeft, $chartPlotWidth, $chartTop, $chartPlotHeight, $chartMaximum) {
-            $x = $chartRows->count() <= 1
-                ? $chartLeft + ($chartPlotWidth / 2)
-                : $chartLeft + (($chartPlotWidth / ($chartRows->count() - 1)) * $index);
-            $y = $chartTop + $chartPlotHeight - (($row['average_ltv'] / $chartMaximum) * $chartPlotHeight);
+        $buildChart = function (string $metric) use ($chartRows, $chartLeft, $chartPlotWidth, $chartTop, $chartPlotHeight) {
+            $maximum = max(1, (float) $chartRows->max($metric));
+            $points = $chartRows->map(function ($row, $index) use ($metric, $maximum, $chartRows, $chartLeft, $chartPlotWidth, $chartTop, $chartPlotHeight) {
+                $x = $chartRows->count() <= 1
+                    ? $chartLeft + ($chartPlotWidth / 2)
+                    : $chartLeft + (($chartPlotWidth / ($chartRows->count() - 1)) * $index);
+                $y = $chartTop + $chartPlotHeight - (($row[$metric] / $maximum) * $chartPlotHeight);
 
-            return ['x' => round($x, 2), 'y' => round($y, 2), 'row' => $row];
-        });
-        $chartPolyline = $chartPoints->map(fn ($point) => $point['x'] . ',' . $point['y'])->implode(' ');
-        $chartArea = $chartPoints->isEmpty()
-            ? ''
-            : $chartPoints->first()['x'] . ',' . ($chartTop + $chartPlotHeight) . ' ' . $chartPolyline . ' ' . $chartPoints->last()['x'] . ',' . ($chartTop + $chartPlotHeight);
+                return ['x' => round($x, 2), 'y' => round($y, 2), 'row' => $row];
+            });
+            $polyline = $points->map(fn ($point) => $point['x'] . ',' . $point['y'])->implode(' ');
+
+            return [
+                'maximum' => $maximum,
+                'points' => $points,
+                'polyline' => $polyline,
+                'area' => $points->isEmpty()
+                    ? ''
+                    : $points->first()['x'] . ',' . ($chartTop + $chartPlotHeight) . ' ' . $polyline . ' ' . $points->last()['x'] . ',' . ($chartTop + $chartPlotHeight),
+            ];
+        };
+        $charts = [
+            'ltv' => ['label' => 'Средний LTV', 'metric' => 'average_ltv', 'chart' => $buildChart('average_ltv')],
+            'revenue' => ['label' => 'Выручка новичков', 'metric' => 'revenue', 'chart' => $buildChart('revenue')],
+        ];
         $visibleRows = $this->getVisibleRows();
         $tablePages = $this->getTablePages();
     @endphp
@@ -161,34 +179,42 @@
             @endif
         </section>
 
-        <section class="ltv-chart-card" wire:key="ltv-chart-{{ $periodFrom }}-{{ $periodUntil }}">
-            <div class="ltv-chart__title">Динамика LTV новых игроков</div>
-            <div class="ltv-chart__wrap">
-                <svg class="ltv-chart" style="width: {{ $chartWidth }}px" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" role="img" aria-label="Динамика среднего LTV новых игроков по месяцам">
-                    @for ($tick = 0; $tick <= 4; $tick++)
-                        @php
-                            $tickY = $chartTop + $chartPlotHeight - (($chartPlotHeight / 4) * $tick);
-                            $tickValue = ($chartMaximum / 4) * $tick;
-                        @endphp
-                        <line class="ltv-chart__grid" x1="{{ $chartLeft }}" y1="{{ $tickY }}" x2="{{ $chartLeft + $chartPlotWidth }}" y2="{{ $tickY }}" />
-                        <text class="ltv-chart__axis-label" x="{{ $chartLeft - 10 }}" y="{{ $tickY + 4 }}" text-anchor="end">{{ $number($tickValue, 0) }} BYN</text>
-                    @endfor
-
-                    @if ($chartPoints->isNotEmpty())
-                        <polygon class="ltv-chart__area" points="{{ $chartArea }}" />
-                        <polyline class="ltv-chart__line" points="{{ $chartPolyline }}" />
-
-                        @foreach ($chartPoints as $point)
-                            <circle class="ltv-chart__point" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="5">
-                                <title>{{ $point['row']['label'] }}: {{ $money($point['row']['average_ltv']) }}</title>
-                            </circle>
-                            <text class="ltv-chart__axis-label" x="{{ $point['x'] }}" y="{{ $chartTop + $chartPlotHeight + 24 }}" text-anchor="middle">
-                                {{ \Illuminate\Support\Carbon::createFromFormat('!Y-m', $point['row']['month'])->locale('ru')->translatedFormat('M Y') }}
-                            </text>
-                        @endforeach
-                    @endif
-                </svg>
+        <section class="ltv-chart-card" wire:key="ltv-chart-{{ $periodFrom }}-{{ $periodUntil }}" x-data="{ metric: 'ltv' }">
+            <div class="ltv-chart__header">
+                <div class="ltv-chart__title">Динамика новых игроков</div>
+                <div class="ltv-chart__tabs">
+                    @foreach ($charts as $key => $dataset)
+                        <button type="button" x-on:click="metric = '{{ $key }}'" x-bind:class="{ 'ltv-chart__tab--active': metric === '{{ $key }}' }" class="ltv-chart__tab">{{ $dataset['label'] }}</button>
+                    @endforeach
+                </div>
             </div>
+
+            @foreach ($charts as $key => $dataset)
+                <div class="ltv-chart__wrap" x-show="metric === '{{ $key }}'" @if ($key !== 'ltv') x-cloak @endif>
+                    <svg class="ltv-chart" style="width: {{ $chartWidth }}px" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" role="img" aria-label="Динамика показателя {{ $dataset['label'] }} по месяцам">
+                        @for ($tick = 0; $tick <= 4; $tick++)
+                            @php
+                                $tickY = $chartTop + $chartPlotHeight - (($chartPlotHeight / 4) * $tick);
+                                $tickValue = ($dataset['chart']['maximum'] / 4) * $tick;
+                            @endphp
+                            <line class="ltv-chart__grid" x1="{{ $chartLeft }}" y1="{{ $tickY }}" x2="{{ $chartLeft + $chartPlotWidth }}" y2="{{ $tickY }}" />
+                            <text class="ltv-chart__axis-label" x="{{ $chartLeft - 10 }}" y="{{ $tickY + 4 }}" text-anchor="end">{{ $number($tickValue, 0) }} BYN</text>
+                        @endfor
+
+                        @if ($dataset['chart']['points']->isNotEmpty())
+                            <polygon class="ltv-chart__area" points="{{ $dataset['chart']['area'] }}" />
+                            <polyline class="ltv-chart__line" points="{{ $dataset['chart']['polyline'] }}" />
+
+                            @foreach ($dataset['chart']['points'] as $point)
+                                <circle class="ltv-chart__point" cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="5">
+                                    <title>{{ $point['row']['label'] }}: {{ $money($point['row'][$dataset['metric']]) }}</title>
+                                </circle>
+                                <text class="ltv-chart__axis-label" x="{{ $point['x'] }}" y="{{ $chartTop + $chartPlotHeight + 24 }}" text-anchor="middle">{{ \Illuminate\Support\Carbon::createFromFormat('!Y-m', $point['row']['month'])->locale('ru')->translatedFormat('M Y') }}</text>
+                            @endforeach
+                        @endif
+                    </svg>
+                </div>
+            @endforeach
         </section>
     </div>
 </x-filament-panels::page>
