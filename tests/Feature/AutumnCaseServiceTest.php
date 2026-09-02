@@ -12,6 +12,7 @@ use App\Models\Player;
 use App\Services\AutumnCaseService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class AutumnCaseServiceTest extends TestCase
@@ -74,6 +75,38 @@ class AutumnCaseServiceTest extends TestCase
         $this->assertSame(1, $firstQualifiedVisit->fresh()->autumn_case_visit_number);
         $this->assertNull($secondBelowThreshold->fresh()->autumn_case_id);
         $this->assertSame(1, AutumnCase::query()->sole()->participations()->count());
+    }
+
+    public function test_repair_command_removes_legacy_free_visit_and_empty_case(): void
+    {
+        $freeVisit = $this->visit('2026-09-01', 0);
+        $legacyCase = AutumnCase::query()->create([
+            'autumn_campaign_id' => $this->campaign->getKey(),
+            'player_id' => $this->player->getKey(),
+            'number' => 1,
+            'started_at' => '2026-09-01',
+            'deadline_at' => '2026-10-01',
+        ]);
+        $freeVisit->updateQuietly([
+            'autumn_case_id' => $legacyCase->getKey(),
+            'autumn_case_visit_number' => 1,
+        ]);
+
+        Artisan::call('autumn-cases:repair-payment-threshold', [
+            '--campaign' => $this->campaign->getKey(),
+            '--dry-run' => true,
+        ]);
+
+        $this->assertDatabaseCount('autumn_cases', 1);
+        $this->assertSame($legacyCase->getKey(), $freeVisit->fresh()->autumn_case_id);
+
+        Artisan::call('autumn-cases:repair-payment-threshold', [
+            '--campaign' => $this->campaign->getKey(),
+        ]);
+
+        $this->assertDatabaseCount('autumn_cases', 0);
+        $this->assertNull($freeVisit->fresh()->autumn_case_id);
+        $this->assertNull($freeVisit->fresh()->autumn_case_visit_number);
     }
 
     public function test_fifth_visit_on_deadline_unlocks_and_next_visit_redeems_reward(): void

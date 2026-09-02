@@ -75,6 +75,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
             ->columns([
                 TextColumn::make('player.nickname')
                     ->label('Игрок')
+                    ->searchable()
                     ->url(fn (AutumnCase $record): string => PlayerResource::getUrl(
                         'autumn-case',
                         ['record' => $record->player_id],

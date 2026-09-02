@@ -17,19 +17,39 @@
         }
 
         .autumn-summary__header {
-            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .autumn-summary__title {
-            margin: 0;
-            color: #ffffff;
-            font-size: 16px;
+        .autumn-summary__period {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 36px;
+            padding: 7px 12px;
+            border: 1px solid rgba(251, 146, 60, 0.24);
+            border-radius: 10px;
+            background: rgba(251, 146, 60, 0.08);
+            color: #d4d4d8;
+            font-size: 13px;
             font-weight: 600;
         }
 
-        .autumn-summary__subtitle {
-            margin-top: 4px;
-            color: #9ca3af;
+        .autumn-summary__period svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            color: #fb923c;
+        }
+
+        .autumn-summary__period-label {
+            color: #a1a1aa;
+            font-weight: 500;
+        }
+
+        .autumn-summary__empty-note {
+            color: #a1a1aa;
             font-size: 13px;
         }
 
@@ -78,17 +98,17 @@
 
     <div class="autumn-summary">
         <div class="autumn-summary__header">
-            <h2 class="autumn-summary__title">
-                {{ $summary['campaign']?->name ?? 'Кампания не создана' }}
-            </h2>
-
-            <div class="autumn-summary__subtitle">
-                @if ($summary['campaign'])
-                    Период: {{ $summary['campaign']->starts_at->format('d.m.Y') }}–{{ $summary['campaign']->ends_at->format('d.m.Y') }}
-                @else
+            @if ($summary['campaign'])
+                <div class="autumn-summary__period">
+                    <x-heroicon-o-calendar-days />
+                    <span class="autumn-summary__period-label">Период</span>
+                    <span>{{ $summary['campaign']->starts_at->format('d.m.Y') }} — {{ $summary['campaign']->ends_at->format('d.m.Y') }}</span>
+                </div>
+            @else
+                <div class="autumn-summary__empty-note">
                     Создайте кампанию, чтобы начать учитывать посещения
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
 
         <div class="autumn-summary__grid">

@@ -41,44 +41,11 @@ class PlayerAutumnCase extends ViewRecord
 
     public function content(Schema $schema): Schema
     {
+        $latestCaseId = $this->record->autumnCases()->max('id');
+
         return $schema->components([
-            Section::make('Текущее дело')
-                ->description('Прогресс игрока в активной осенней кампании')
-                ->schema([
-                    TextEntry::make('latestAutumnCase.number')
-                        ->label('Дело')
-                        ->formatStateUsing(fn ($state): string => $state ? "№ {$state}" : 'Ещё не открыто')
-                        ->placeholder('Ещё не открыто'),
-
-                    TextEntry::make('latestAutumnCase.status')
-                        ->label('Статус')
-                        ->formatStateUsing(fn (?AutumnCaseStatus $state): string => $state?->label() ?? 'Не участвует')
-                        ->badge()
-                        ->color(fn (?AutumnCaseStatus $state): string => $state?->color() ?? 'gray'),
-
-                    TextEntry::make('latestAutumnCase.progress')
-                        ->label('Прогресс')
-                        ->formatStateUsing(fn ($state): string => $state === null ? '0 из 5' : "{$state} из 5"),
-
-                    TextEntry::make('latestAutumnCase.started_at')
-                        ->label('Дата открытия')
-                        ->date('d.m.Y')
-                        ->placeholder('—'),
-
-                    TextEntry::make('latestAutumnCase.deadline_at')
-                        ->label('Крайний срок')
-                        ->date('d.m.Y')
-                        ->placeholder('—'),
-
-                    TextEntry::make('latestAutumnCase.completed_at')
-                        ->label('Бесплатный визит')
-                        ->date('d.m.Y')
-                        ->placeholder('Не использован'),
-                ])
-                ->columns(3)
-                ->columnSpanFull(),
-
             Section::make('История дел')
+                ->description('Актуальное дело показано первым')
                 ->schema([
                     RepeatableEntry::make('autumn_case_history')
                         ->hiddenLabel()
@@ -165,7 +132,7 @@ class PlayerAutumnCase extends ViewRecord
                                 ])
                                 ->columns(4)
                                 ->collapsible()
-                                ->collapsed()
+                                ->collapsed(fn ($record): bool => $record?->getKey() !== $latestCaseId)
                                 ->columnSpanFull(),
                         ])
                         ->contained(false),
