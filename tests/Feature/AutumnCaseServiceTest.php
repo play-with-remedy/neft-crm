@@ -61,6 +61,21 @@ class AutumnCaseServiceTest extends TestCase
         $this->assertSame(1, $visit->fresh()->autumn_case_visit_number);
     }
 
+    public function test_payment_below_thirty_does_not_open_or_advance_case(): void
+    {
+        $belowThreshold = $this->visit('2026-09-01', 29);
+
+        $this->assertNull($belowThreshold->fresh()->autumn_case_id);
+        $this->assertDatabaseCount('autumn_cases', 0);
+
+        $firstQualifiedVisit = $this->visit('2026-09-02', 30);
+        $secondBelowThreshold = $this->visit('2026-09-03', 29);
+
+        $this->assertSame(1, $firstQualifiedVisit->fresh()->autumn_case_visit_number);
+        $this->assertNull($secondBelowThreshold->fresh()->autumn_case_id);
+        $this->assertSame(1, AutumnCase::query()->sole()->participations()->count());
+    }
+
     public function test_fifth_visit_on_deadline_unlocks_and_next_visit_redeems_reward(): void
     {
         foreach (['2026-09-01', '2026-09-08', '2026-09-15', '2026-09-22', '2026-10-01'] as $date) {
@@ -76,6 +91,18 @@ class AutumnCaseServiceTest extends TestCase
         $this->assertTrue($reward->fresh()->is_autumn_reward);
         $this->assertSame(50.0, (float) $reward->fresh()->paid_amount);
         $this->assertSame(AutumnCaseStatus::Completed, $case->fresh()->status);
+    }
+
+    public function test_free_visit_can_redeem_an_earned_reward(): void
+    {
+        foreach (['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05'] as $date) {
+            $this->visit($date, 30);
+        }
+
+        $reward = $this->visit('2026-09-06', 0);
+
+        $this->assertTrue($reward->fresh()->is_autumn_reward);
+        $this->assertSame(AutumnCaseStatus::Completed, AutumnCase::query()->sole()->status);
     }
 
     public function test_visit_after_deadline_expires_old_case_and_opens_next_case(): void

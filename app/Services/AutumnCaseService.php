@@ -15,6 +15,8 @@ class AutumnCaseService
 
     public const DEADLINE_DAYS = 30;
 
+    public const MINIMUM_QUALIFYING_PAYMENT = 30;
+
     public function processParticipation(EveningParticipant $participation): void
     {
         DB::transaction(function () use ($participation): void {
@@ -51,6 +53,10 @@ class AutumnCaseService
             if ($case?->statusAt($visitDate) === AutumnCaseStatus::RewardAvailable) {
                 $this->redeemReward($case, $participation, $visitDate);
 
+                return;
+            }
+
+            if ((float) $participation->paid_amount < self::MINIMUM_QUALIFYING_PAYMENT) {
                 return;
             }
 
