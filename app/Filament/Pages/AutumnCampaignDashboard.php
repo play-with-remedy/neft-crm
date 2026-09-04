@@ -111,7 +111,8 @@ class AutumnCampaignDashboard extends Page implements HasTable
 
                 TextColumn::make('progress')
                     ->label('Прогресс')
-                    ->formatStateUsing(fn ($state): string => min((int) $state, 5) . ' из 5'),
+                    ->formatStateUsing(fn ($state): string => min((int) $state, 5) . ' из 5')
+                    ->sortable(),
 
                 TextColumn::make('started_at')
                     ->label('Открыто')
@@ -148,6 +149,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
                         ['record' => $record->player_id],
                     )),
             ])
+            ->defaultSort('progress', 'desc')
             ->emptyStateHeading('Дел пока нет')
             ->emptyStateDescription('Первое дело появится после посещения игрока во время кампании.');
     }

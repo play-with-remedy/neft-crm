@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Evenings\Pages;
 
 use App\Filament\Resources\Evenings\EveningResource;
+use App\Support\EveningCsvExporter;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
@@ -15,6 +17,12 @@ class ListEvenings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('export')
+                ->label('Экспорт CSV')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(fn () => EveningCsvExporter::downloadAll()),
+
             CreateAction::make()
                 ->label('Новый вечер'),
         ];

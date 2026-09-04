@@ -11,6 +11,8 @@ use UnitEnum;
 
 class ExportEvenings extends Page
 {
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownTray;
 
     protected static ?string $navigationLabel = 'Экспорт вечеров';

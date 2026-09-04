@@ -135,6 +135,7 @@ class EveningForm
                             ->minValue(1)
                             ->maxValue(100)
                             ->default(1)
+                            ->live()
                             ->dehydrated(false),
 
                                 Select::make('participants_batch_payment_type_id')
@@ -148,6 +149,7 @@ class EveningForm
                                 ->value('id'))
                             ->selectablePlaceholder(false)
                             ->preload()
+                            ->live()
                             ->dehydrated(false),
 
                                 TextInput::make('participants_batch_paid_amount')
@@ -155,6 +157,7 @@ class EveningForm
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
+                            ->live()
                             ->dehydrated(false),
 
                                 Actions::make([
@@ -163,9 +166,18 @@ class EveningForm
                                 ->icon('heroicon-o-user-plus')
                                 ->action(function (Get $get, Set $set): void {
                                     $count = max(1, min(100, (int) $get('participants_batch_count')));
-                                    $paymentTypeId = $get('participants_batch_payment_type_id');
+                                    $paymentTypeId = (int) $get('participants_batch_payment_type_id');
                                     $paidAmount = $get('participants_batch_paid_amount') ?? 0;
                                     $participants = $get('participants') ?? [];
+
+                                    if (! PaymentType::query()->whereKey($paymentTypeId)->exists()) {
+                                        Notification::make()
+                                            ->title('Выберите тип оплаты')
+                                            ->danger()
+                                            ->send();
+
+                                        return;
+                                    }
 
                                     for ($index = 0; $index < $count; $index++) {
                                         $participants[Str::uuid()->toString()] = [
