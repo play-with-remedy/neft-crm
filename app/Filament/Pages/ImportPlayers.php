@@ -21,6 +21,8 @@ class ImportPlayers extends Page implements HasForms
 {
     use InteractsWithForms;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 
     protected static ?string $navigationLabel = 'Импорт игроков';
@@ -173,6 +175,7 @@ class ImportPlayers extends Page implements HasForms
             if (count($row) !== count($headers)) {
                 $skipped++;
                 $this->addSkipped($skippedList, '', 'неверное количество колонок');
+
                 continue;
             }
 
@@ -197,18 +200,21 @@ class ImportPlayers extends Page implements HasForms
             if ($nickname === '') {
                 $skipped++;
                 $this->addSkipped($skippedList, '', 'пустой игровой ник');
+
                 continue;
             }
 
             if ($firstName === '') {
                 $skipped++;
                 $this->addSkipped($skippedList, $nickname, 'не указано имя');
+
                 continue;
             }
 
             if ($gender === null) {
                 $skipped++;
                 $this->addSkipped($skippedList, $nickname, "неверный пол ({$genderRaw})");
+
                 continue;
             }
 
@@ -223,6 +229,7 @@ class ImportPlayers extends Page implements HasForms
             if ($birthdayParts === null) {
                 $skipped++;
                 $this->addSkipped($skippedList, $nickname, 'неверная дата рождения');
+
                 continue;
             }
 
@@ -238,6 +245,7 @@ class ImportPlayers extends Page implements HasForms
                 } catch (\Throwable) {
                     $skipped++;
                     $this->addSkipped($skippedList, $nickname, 'неверная дата первого посещения');
+
                     continue;
                 }
             }
@@ -271,6 +279,7 @@ class ImportPlayers extends Page implements HasForms
                 if (! ($data['update_existing'] ?? false)) {
                     $skipped++;
                     $this->addSkipped($skippedList, $nickname, 'игрок уже существует, обновление выключено');
+
                     continue;
                 }
 
@@ -279,6 +288,7 @@ class ImportPlayers extends Page implements HasForms
                 if ($fieldsToUpdate === []) {
                     $skipped++;
                     $this->addSkipped($skippedList, $nickname, 'нет пустых полей для обновления');
+
                     continue;
                 }
 
@@ -295,6 +305,7 @@ class ImportPlayers extends Page implements HasForms
             if (Player::where('nickname', $newNickname)->exists()) {
                 $skipped++;
                 $this->addSkipped($skippedList, $nickname, "сгенерированный ник {$newNickname} уже существует");
+
                 continue;
             }
 

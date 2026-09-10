@@ -79,13 +79,6 @@ class Evening extends Model
             ->count();
     }
 
-    public function getFullPaymentPlayersCountAttribute(): int
-    {
-        return $this->participants()
-            ->where('is_full_payment', true)
-            ->count();
-    }
-
     public function getPaymentsByTypeAttribute(): array
     {
         return PaymentType::query()

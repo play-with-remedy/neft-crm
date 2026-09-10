@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreignId('payment_type_id')->constrained('payment_types')->restrictOnDelete();
             $table->decimal('paid_amount', 10, 2)->default(0);
             $table->boolean('is_new_player')->default(false);
-            $table->boolean('is_full_payment')->default(true);
             $table->text('note')->nullable();
             $table->timestamps();
 

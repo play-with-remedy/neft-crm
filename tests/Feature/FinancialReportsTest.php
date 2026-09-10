@@ -8,6 +8,7 @@ use App\Filament\Pages\MonthlyFinances;
 use App\Filament\Pages\PlayerAnalytics;
 use App\Filament\Pages\PlayerFunnel;
 use App\Filament\Pages\StaffSalaries;
+use App\Livewire\StaffSalaryEvenings;
 use App\Models\Evening;
 use App\Models\EveningType;
 use App\Models\ExpenseCategory;
@@ -18,6 +19,7 @@ use App\Models\Host;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
 use PDO;
@@ -252,7 +254,7 @@ class FinancialReportsTest extends TestCase
             ->assertSet('periodUntil', '2026-08');
     }
 
-    public function test_staff_salary_month_filter_limits_sums_and_unique_evenings(): void
+    public function test_staff_salary_date_range_filter_limits_sums_and_unique_evenings(): void
     {
         $host = Host::create(['nickname' => 'Сотрудник']);
         $january = Evening::create(['played_at' => '2026-01-20 19:00:00']);
@@ -275,7 +277,7 @@ class FinancialReportsTest extends TestCase
         ]);
 
         $component = Livewire::test(StaffSalaries::class)
-            ->filterTable('month', '2026-02')
+            ->filterTable('played_at', ['from' => '2026-02-01', 'until' => '2026-02-20'])
             ->assertCountTableRecords(1);
 
         $record = $component->instance()
@@ -288,6 +290,95 @@ class FinancialReportsTest extends TestCase
         $this->assertSame(1, (int) $record->manager_evenings_count);
         $this->assertSame(180, (int) $record->total_salary);
         $this->assertSame(2, (int) $record->total_evenings_count);
+
+        $component
+            ->mountTableAction('view_host_salary_evenings', $host->getKey());
+
+        $modal = $component->getMountedActionModalHtml();
+
+        $this->assertStringContainsString('10.02.2026', $modal);
+        $this->assertStringContainsString('20.02.2026', $modal);
+        $this->assertStringNotContainsString('20.01.2026', $modal);
+        $this->assertStringContainsString('150 BYN', $modal);
+    }
+
+    public function test_staff_salary_evenings_modal_paginates_by_five_evenings(): void
+    {
+        $host = Host::create(['nickname' => 'Сотрудник с историей']);
+
+        foreach (range(1, 11) as $day) {
+            Evening::create(['played_at' => "2026-03-{$day} 19:00:00"])
+                ->staff()
+                ->create([
+                    'host_id' => $host->id,
+                    'role' => 'host',
+                    'salary' => 50,
+                ]);
+        }
+
+        Livewire::test(StaffSalaryEvenings::class, [
+            'hostId' => $host->id,
+            'role' => 'host',
+            'periodLabel' => 'За всё время',
+        ])
+            ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 5
+                && $evenings->perPage() === 5
+                && $evenings->currentPage() === 1)
+            ->call('nextPage', 'staffEveningsPage')
+            ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 5
+                && $evenings->currentPage() === 2)
+            ->call('nextPage', 'staffEveningsPage')
+            ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 1
+                && $evenings->currentPage() === 3);
+    }
+
+    public function test_staff_salary_filters_limit_totals_and_details_by_project_type_and_project(): void
+    {
+        $host = Host::create(['nickname' => 'Filtered employee']);
+        $wantedType = EveningType::create(['name' => 'Wanted type']);
+        $otherType = EveningType::create(['name' => 'Other type']);
+        $wantedProject = Project::create(['name' => 'Wanted project']);
+        $otherProject = Project::create(['name' => 'Other project']);
+
+        $matching = Evening::create([
+            'played_at' => '2026-04-10 19:00:00',
+            'evening_type_id' => $wantedType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+        $wrongProject = Evening::create([
+            'played_at' => '2026-04-11 19:00:00',
+            'evening_type_id' => $wantedType->id,
+            'project_id' => $otherProject->id,
+        ]);
+        $wrongType = Evening::create([
+            'played_at' => '2026-04-12 19:00:00',
+            'evening_type_id' => $otherType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+
+        $matching->staff()->create(['host_id' => $host->id, 'role' => 'host', 'salary' => 100]);
+        $wrongProject->staff()->create(['host_id' => $host->id, 'role' => 'host', 'salary' => 200]);
+        $wrongType->staff()->create(['host_id' => $host->id, 'role' => 'host', 'salary' => 300]);
+
+        $component = Livewire::test(StaffSalaries::class)
+            ->filterTable('evening_type_id', $wantedType->id)
+            ->filterTable('project_id', $wantedProject->id);
+
+        $record = $component->instance()->getFilteredTableQuery()->findOrFail($host->id);
+
+        $this->assertSame(100, (int) $record->total_salary);
+        $this->assertSame(1, (int) $record->total_evenings_count);
+
+        Livewire::test(StaffSalaryEvenings::class, [
+            'hostId' => $host->id,
+            'periodLabel' => 'All time',
+            'eveningTypeId' => $wantedType->id,
+            'projectId' => $wantedProject->id,
+        ])
+            ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 1
+                && $evenings->first()->is($matching))
+            ->assertViewHas('totalSalary', 100)
+            ->assertViewHas('eveningsCount', 1);
     }
 
     public function test_player_funnel_calculates_stage_statistics_by_first_visit_month(): void
@@ -389,6 +480,74 @@ class FinancialReportsTest extends TestCase
             ->assertCountTableRecords(1)
             ->assertCanSeeTableRecords([$clubGuest])
             ->assertCanNotSeeTableRecords([$seasonPlayer]);
+    }
+
+    public function test_player_analytics_can_filter_by_visit_period_type_and_project(): void
+    {
+        $paymentType = PaymentType::create(['type' => 'Наличные']);
+        $wantedType = EveningType::create(['name' => 'Квиз']);
+        $otherType = EveningType::create(['name' => 'Мафия']);
+        $wantedProject = Project::create(['name' => 'Основной проект']);
+        $otherProject = Project::create(['name' => 'Другой проект']);
+        $wantedPlayer = Player::create(['nickname' => 'Подходящий игрок']);
+        $otherPlayer = Player::create(['nickname' => 'Другой игрок']);
+
+        $wantedEvening = Evening::create([
+            'played_at' => '2026-05-15 19:00:00',
+            'evening_type_id' => $wantedType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+        $secondWantedEvening = Evening::create([
+            'played_at' => '2026-05-25 19:00:00',
+            'evening_type_id' => $wantedType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+        $otherEvening = Evening::create([
+            'played_at' => '2026-06-15 19:00:00',
+            'evening_type_id' => $otherType->id,
+            'project_id' => $otherProject->id,
+        ]);
+        $wantedEvening->participants()->create(['player_id' => $wantedPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 20]);
+        $secondWantedEvening->participants()->create(['player_id' => $wantedPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 30]);
+        $otherEvening->participants()->create(['player_id' => $otherPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 20]);
+
+        for ($visit = 1; $visit <= 19; $visit++) {
+            $outsideScopeEvening = Evening::create([
+                'played_at' => "2026-06-{$visit} 19:00:00",
+                'evening_type_id' => $otherType->id,
+                'project_id' => $otherProject->id,
+            ]);
+            $outsideScopeEvening->participants()->create([
+                'player_id' => $wantedPlayer->id,
+                'payment_type_id' => $paymentType->id,
+                'paid_amount' => 100,
+            ]);
+        }
+
+        $component = Livewire::test(PlayerAnalytics::class)
+            ->filterTable('played_at', ['from' => '2026-05-01', 'until' => '2026-05-31'])
+            ->filterTable('evening_type_id', $wantedType->id)
+            ->filterTable('project_id', $wantedProject->id)
+            ->assertCountTableRecords(1)
+            ->assertCanSeeTableRecords([$wantedPlayer])
+            ->assertCanNotSeeTableRecords([$otherPlayer]);
+
+        $record = $component->instance()->getFilteredTableQuery()->findOrFail($wantedPlayer->id);
+
+        $this->assertSame(2, (int) $record->visits_count);
+        $this->assertSame(21, (int) $record->lifetime_visits_count);
+        $this->assertSame(21, (int) $record->recent_visits_count);
+        $this->assertSame(50, (int) $record->ltv_total);
+        $this->assertSame('2026-05-15', $record->first_visit_at->format('Y-m-d'));
+        $this->assertSame('2026-05-25', Carbon::parse($record->last_visit_at)->format('Y-m-d'));
+        $this->assertSame('2026-05-15', Carbon::parse($record->lifetime_first_visit_at)->format('Y-m-d'));
+        $this->assertSame('2026-06-19', Carbon::parse($record->lifetime_last_visit_at)->format('Y-m-d'));
+
+        $table = $component->instance()->getTable();
+
+        $this->assertSame('regular', $table->getColumn('status')->record($record)->getState());
+        $this->assertSame('Клубный игрок', $table->getColumn('activity_status')->record($record)->getState());
+        $this->assertSame('1 месяц 4 дня', $table->getColumn('duration')->record($record)->getState());
     }
 
     public function test_ltv_analysis_calculates_metrics_for_first_visit_cohort(): void
