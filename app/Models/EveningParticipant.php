@@ -16,13 +16,11 @@ class EveningParticipant extends Model
         'paid_amount',
         'payment_type_id',
         'is_new_player',
-        'is_full_payment',
         'note',
     ];
 
     protected $casts = [
         'is_new_player' => 'boolean',
-        'is_full_payment' => 'boolean',
         'is_autumn_reward' => 'boolean',
     ];
 

@@ -75,7 +75,6 @@ class EveningCsvExporter
             'Тип оплаты',
             'Сумма оплаты',
             'Новый игрок',
-            'Полная оплата',
             'Примечание',
         ], ';');
     }
@@ -104,7 +103,6 @@ class EveningCsvExporter
                 '',
                 '',
                 '',
-                '',
             ], ';');
         }
 
@@ -123,7 +121,6 @@ class EveningCsvExporter
                 $participant->paymentType?->type,
                 $participant->paid_amount,
                 $participant->is_new_player ? 'Да' : 'Нет',
-                $participant->is_full_payment ? 'Да' : 'Нет',
                 $participant->note,
             ], ';');
         }
@@ -140,7 +137,6 @@ class EveningCsvExporter
                 '',
                 $expense->category?->name,
                 $expense->amount,
-                '',
                 '',
                 '',
                 '',

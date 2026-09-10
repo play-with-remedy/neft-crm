@@ -202,7 +202,6 @@ class AutumnCaseServiceTest extends TestCase
             'payment_type_id' => $this->paymentType->getKey(),
             'paid_amount' => $amount,
             'is_new_player' => false,
-            'is_full_payment' => true,
         ]);
     }
 }

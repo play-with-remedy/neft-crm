@@ -2,34 +2,35 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Evening;
 use App\Models\EveningStaff;
 use App\Models\Host;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 use UnitEnum;
 
 class StaffSalaries extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedBanknotes;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
     protected static ?string $navigationLabel = 'Зарплаты сотрудников';
 
     protected static ?string $title = 'Зарплаты сотрудников';
 
-    protected static UnitEnum | string | null $navigationGroup = 'Отчеты';
+    protected static UnitEnum|string|null $navigationGroup = 'Отчеты';
 
     protected static ?int $navigationSort = 40;
 
@@ -55,20 +56,37 @@ class StaffSalaries extends Page implements HasTable
                     ->searchable()
                     ->sortable(),
 
-                $this->salaryColumn('host_salary', 'host_evenings_count', 'Ведущий'),
-                $this->salaryColumn('admin_salary', 'admin_evenings_count', 'Админ'),
-                $this->salaryColumn('manager_salary', 'manager_evenings_count', 'Менеджер'),
-                $this->salaryColumn('supervisor_salary', 'supervisor_evenings_count', 'Супервайзер'),
+                $this->salaryColumn('host_salary', 'host_evenings_count', 'Ведущий', 'host'),
+                $this->salaryColumn('admin_salary', 'admin_evenings_count', 'Админ', 'admin'),
+                $this->salaryColumn('manager_salary', 'manager_evenings_count', 'Менеджер', 'manager'),
+                $this->salaryColumn('supervisor_salary', 'supervisor_evenings_count', 'Супервайзер', 'supervisor'),
 
-                $this->salaryColumn('total_salary', 'total_evenings_count', 'Всего')
+                $this->salaryColumn('total_salary', 'total_evenings_count', 'Всего', null)
                     ->weight('bold'),
             ])
             ->filters([
-                SelectFilter::make('month')
-                    ->label('По месяцу')
-                    ->placeholder('Все месяцы')
-                    ->options(fn (): array => $this->monthOptions())
-                    ->query(fn (Builder $query): Builder => $query),
+                Filter::make('played_at')
+                    ->label('Период проведения')
+                    ->form([
+                        DatePicker::make('from')
+                            ->label('С даты'),
+                        DatePicker::make('until')
+                            ->label('По дату'),
+                    ])
+                    ->query(fn (Builder $query): Builder => $query)
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['from'] ?? null) {
+                            $indicators['from'] = 'С даты: '.Carbon::parse($data['from'])->format('d.m.Y');
+                        }
+
+                        if ($data['until'] ?? null) {
+                            $indicators['until'] = 'По дату: '.Carbon::parse($data['until'])->format('d.m.Y');
+                        }
+
+                        return $indicators;
+                    }),
             ])
             ->filtersApplyAction(
                 fn (Action $action): Action => $action->label('Применить')
@@ -93,22 +111,43 @@ class StaffSalaries extends Page implements HasTable
             ->paginationPageOptions([10, 25, 50, 100]);
     }
 
-    private function salaryColumn(string $name, string $countName, string $label): TextColumn
+    private function salaryColumn(string $name, string $countName, string $label, ?string $role): TextColumn
     {
         return TextColumn::make($name)
             ->label($label)
             ->formatStateUsing(
-                fn ($state): string => number_format((int) $state, 0, ',', ' ') . ' BYN'
+                fn ($state): string => number_format((int) $state, 0, ',', ' ').' BYN'
             )
             ->description(
                 function (Host $record) use ($countName): string {
                     $count = (int) $record->getAttribute($countName);
 
                     return number_format($count, 0, ',', ' ')
-                        . ' '
-                        . $this->eveningWord($count);
+                        .' '
+                        .$this->eveningWord($count);
                 }
             )
+            ->action(
+                Action::make("view_{$name}_evenings")
+                    ->action(fn (): null => null)
+                    ->modalHeading(fn (Host $record): string => "{$record->nickname} — {$label}")
+                    ->modalContent(fn (Host $record): View => view(
+                        'filament.pages.partials.staff-salary-evenings',
+                        [
+                            'hostId' => $record->getKey(),
+                            'role' => $role,
+                            'periodFrom' => $this->activePeriod()[0]?->toDateString(),
+                            'periodUntil' => $this->activePeriod()[1]?->toDateString(),
+                            'periodLabel' => $this->activePeriodLabel(),
+                        ],
+                    ))
+                    ->modalWidth(Width::FourExtraLarge)
+                    ->stickyModalHeader()
+                    ->stickyModalFooter()
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Закрыть'),
+            )
+            ->tooltip('Нажмите, чтобы посмотреть вечера')
             ->sortable()
             ->alignCenter();
     }
@@ -147,53 +186,59 @@ class StaffSalaries extends Page implements HasTable
 
     private function salarySubquery(?string $role = null): Builder
     {
-        [$periodStart, $periodEnd] = $this->activePeriod();
+        [$periodFrom, $periodUntil] = $this->activePeriod();
 
         return EveningStaff::query()
             ->selectRaw('COALESCE(SUM(evening_staff.salary), 0)')
             ->join('evenings', 'evenings.id', '=', 'evening_staff.evening_id')
             ->whereColumn('evening_staff.host_id', 'hosts.id')
             ->when($role, fn (Builder $query): Builder => $query->where('evening_staff.role', $role))
-            ->when($periodStart, fn (Builder $query): Builder => $query
-                ->where('evenings.played_at', '>=', $periodStart)
-                ->where('evenings.played_at', '<', $periodEnd));
+            ->when($periodFrom, fn (Builder $query, Carbon $date): Builder => $query
+                ->where('evenings.played_at', '>=', $date))
+            ->when($periodUntil, fn (Builder $query, Carbon $date): Builder => $query
+                ->where('evenings.played_at', '<', $date));
     }
 
     private function eveningsCountSubquery(?string $role = null): Builder
     {
-        [$periodStart, $periodEnd] = $this->activePeriod();
+        [$periodFrom, $periodUntil] = $this->activePeriod();
 
         return EveningStaff::query()
             ->selectRaw('COUNT(DISTINCT evening_staff.evening_id)')
             ->join('evenings', 'evenings.id', '=', 'evening_staff.evening_id')
             ->whereColumn('evening_staff.host_id', 'hosts.id')
             ->when($role, fn (Builder $query): Builder => $query->where('evening_staff.role', $role))
-            ->when($periodStart, fn (Builder $query): Builder => $query
-                ->where('evenings.played_at', '>=', $periodStart)
-                ->where('evenings.played_at', '<', $periodEnd));
+            ->when($periodFrom, fn (Builder $query, Carbon $date): Builder => $query
+                ->where('evenings.played_at', '>=', $date))
+            ->when($periodUntil, fn (Builder $query, Carbon $date): Builder => $query
+                ->where('evenings.played_at', '<', $date));
     }
 
     private function activePeriod(): array
     {
-        $month = $this->getTableFilterState('month')['value'] ?? null;
-        $periodStart = filled($month)
-            ? Carbon::createFromFormat('!Y-m', $month)->startOfMonth()
-            : null;
+        $period = $this->getTableFilterState('played_at') ?? [];
 
-        return [$periodStart, $periodStart?->copy()->addMonth()];
+        return [
+            filled($period['from'] ?? null) ? Carbon::parse($period['from'])->startOfDay() : null,
+            filled($period['until'] ?? null) ? Carbon::parse($period['until'])->addDay()->startOfDay() : null,
+        ];
     }
 
-    private function monthOptions(): array
+    private function activePeriodLabel(): string
     {
-        return Evening::query()
-            ->whereHas('staff')
-            ->orderByDesc('played_at')
-            ->pluck('played_at')
-            ->map(fn ($date): Carbon => Carbon::parse($date)->startOfMonth())
-            ->unique(fn (Carbon $date): string => $date->format('Y-m'))
-            ->mapWithKeys(fn (Carbon $date): array => [
-                $date->format('Y-m') => Str::ucfirst($date->locale('ru')->translatedFormat('F Y')),
-            ])
-            ->all();
+        $period = $this->getTableFilterState('played_at') ?? [];
+        $from = filled($period['from'] ?? null)
+            ? Carbon::parse($period['from'])->format('d.m.Y')
+            : null;
+        $until = filled($period['until'] ?? null)
+            ? Carbon::parse($period['until'])->format('d.m.Y')
+            : null;
+
+        return match (true) {
+            $from !== null && $until !== null => "{$from} — {$until}",
+            $from !== null => "с {$from}",
+            $until !== null => "по {$until}",
+            default => 'За всё время',
+        };
     }
 }

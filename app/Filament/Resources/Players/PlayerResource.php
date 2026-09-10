@@ -21,7 +21,6 @@ use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
@@ -96,15 +95,19 @@ class PlayerResource extends Resource
                     ->schema([
                         Grid::make(3)
                             ->schema([
-                                Select::make('birth_day')
+                                TextInput::make('birth_day')
                                     ->label('День')
-                                    ->options(array_combine(range(1, 31), range(1, 31)))
-                                    ->native(false),
+                                    ->numeric()
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(31),
 
-                                Select::make('birth_month')
+                                TextInput::make('birth_month')
                                     ->label('Месяц')
-                                    ->options(self::months())
-                                    ->native(false),
+                                    ->numeric()
+                                    ->integer()
+                                    ->minValue(1)
+                                    ->maxValue(12),
 
                                 TextInput::make('birth_year')
                                     ->label('Год')
@@ -118,10 +121,22 @@ class PlayerResource extends Resource
 
                 TextInput::make('phone')
                     ->label('Телефон')
-                    ->placeholder('+375336939589')
-                    ->rule('regex:/^\+?\d+$/')
+                    ->prefix('375')
+                    ->placeholder('XX XXXXXXX')
+                    ->mask('99 9999999')
+                    ->formatStateUsing(function (?string $state): ?string {
+                        $digits = preg_replace('/\D/', '', (string) $state);
+
+                        return $digits === '' ? null : preg_replace('/^375/', '', $digits);
+                    })
+                    ->dehydrateStateUsing(function (?string $state): ?string {
+                        $digits = preg_replace('/\D/', '', (string) $state);
+
+                        return $digits === '' ? null : '+375' . $digits;
+                    })
+                    ->rule('regex:/^\d{2} \d{7}$/')
                     ->validationMessages([
-                        'regex' => 'Телефон может содержать только цифры и один + в начале.',
+                        'regex' => 'Введите код и 7 цифр номера.',
                     ]),
 
                 TextInput::make('telegram')

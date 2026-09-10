@@ -54,8 +54,6 @@ class EveningInfolist
                         TextEntry::make('new_players_count')
                             ->label('Новички'),
 
-                        TextEntry::make('full_payment_players_count')
-                            ->label('Полная оплата'),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
@@ -150,15 +148,11 @@ class EveningInfolist
                                     ->label('Тип игрока')
                                     ->formatStateUsing(fn ($state) => $state ? 'Новый' : 'Обычный'),
 
-                                TextEntry::make('is_full_payment')
-                                    ->label('Оплата')
-                                    ->formatStateUsing(fn ($state) => $state ? 'Полная' : 'Частичная'),
-
                                 TextEntry::make('note')
                                     ->label('Примечание')
                                     ->placeholder('—'),
                             ])
-                            ->columns(6),
+                            ->columns(5),
                     ])
                     ->collapsible()
                     ->collapsed()

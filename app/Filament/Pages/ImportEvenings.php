@@ -26,6 +26,8 @@ class ImportEvenings extends Page implements HasForms
 {
     use InteractsWithForms;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 
     protected static ?string $navigationLabel = 'Импорт вечеров';
@@ -54,7 +56,6 @@ class ImportEvenings extends Page implements HasForms
         'payment_type' => 'Тип оплаты',
         'paid_amount' => 'Сумма оплаты',
         'is_new_player' => 'Новый игрок',
-        'is_full_payment' => 'Полная оплата',
         'note' => 'Примечание',
     ];
 
@@ -426,7 +427,6 @@ class ImportEvenings extends Page implements HasForms
             'payment_type_id' => $paymentType->id,
             'paid_amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null),
             'is_new_player' => $this->bool($rowData[self::HEADERS['is_new_player']] ?? null),
-            'is_full_payment' => $this->bool($rowData[self::HEADERS['is_full_payment']] ?? null),
             'note' => $this->nullableString($rowData[self::HEADERS['note']] ?? null),
         ]);
 
