@@ -19,9 +19,11 @@ use App\Models\Host;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
+use App\Support\PlayerAnalyticsXlsxExporter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
+use OpenSpout\Reader\XLSX\Reader;
 use PDO;
 use Tests\TestCase;
 
@@ -548,6 +550,85 @@ class FinancialReportsTest extends TestCase
         $this->assertSame('regular', $table->getColumn('status')->record($record)->getState());
         $this->assertSame('Клубный игрок', $table->getColumn('activity_status')->record($record)->getState());
         $this->assertSame('1 месяц 4 дня', $table->getColumn('duration')->record($record)->getState());
+    }
+
+    public function test_player_analytics_exports_filtered_top_players_to_xlsx(): void
+    {
+        $paymentType = PaymentType::create(['type' => 'Cash']);
+        $wantedType = EveningType::create(['name' => 'Quiz']);
+        $otherType = EveningType::create(['name' => 'Mafia']);
+        $wantedProject = Project::create(['name' => 'Main project']);
+        $topPlayer = Player::create(['nickname' => 'Top player']);
+        $secondPlayer = Player::create(['nickname' => 'Second player']);
+        $excludedPlayer = Player::create(['nickname' => 'Excluded player']);
+
+        $wantedEvening = Evening::create([
+            'played_at' => '2026-05-15 19:00:00',
+            'evening_type_id' => $wantedType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+        $otherEvening = Evening::create([
+            'played_at' => '2026-05-16 19:00:00',
+            'evening_type_id' => $otherType->id,
+            'project_id' => $wantedProject->id,
+        ]);
+
+        $wantedEvening->participants()->createMany([
+            ['player_id' => $topPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 150],
+            ['player_id' => $secondPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 100],
+        ]);
+        $otherEvening->participants()->create([
+            'player_id' => $excludedPlayer->id,
+            'payment_type_id' => $paymentType->id,
+            'paid_amount' => 500,
+        ]);
+
+        $component = Livewire::test(PlayerAnalytics::class)
+            ->filterTable('played_at', ['from' => '2026-05-01', 'until' => '2026-05-31'])
+            ->filterTable('evening_type_id', $wantedType->id)
+            ->filterTable('project_id', $wantedProject->id)
+            ->assertActionExists('exportTopPlayers');
+
+        $players = $component->instance()->topPlayersForExport(1);
+        $filters = $component->instance()->appliedFiltersLabel();
+
+        $this->assertCount(1, $players);
+        $this->assertTrue($players->first()->is($topPlayer));
+        $this->assertSame(150, (int) $players->first()->ltv_total);
+        $this->assertStringContainsString('01.05.2026', $filters);
+        $this->assertStringContainsString('Quiz', $filters);
+        $this->assertStringContainsString('Main project', $filters);
+
+        $component
+            ->callAction('exportTopPlayers', ['limit' => 1])
+            ->assertFileDownloaded();
+
+        $path = tempnam(sys_get_temp_dir(), 'player-analytics-');
+
+        try {
+            PlayerAnalyticsXlsxExporter::write($players, $filters, $path);
+
+            $reader = new Reader;
+            $reader->open($path);
+            $rows = [];
+
+            foreach ($reader->getSheetIterator() as $sheet) {
+                foreach ($sheet->getRowIterator() as $row) {
+                    $rows[] = array_map(fn ($cell) => $cell->getValue(), $row->getCells());
+                }
+
+                break;
+            }
+
+            $reader->close();
+
+            $this->assertSame($filters, $rows[0][0]);
+            $this->assertSame(['Ник', 'LTV всего'], $rows[1]);
+            $this->assertSame('Top player', $rows[2][0]);
+            $this->assertSame(150, $rows[2][1]);
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function test_ltv_analysis_calculates_metrics_for_first_visit_cohort(): void

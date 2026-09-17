@@ -7,8 +7,11 @@ use App\Models\EveningParticipant;
 use App\Models\EveningType;
 use App\Models\Player;
 use App\Models\Project;
+use App\Support\PlayerAnalyticsXlsxExporter;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -18,6 +21,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
@@ -39,6 +43,32 @@ class PlayerAnalytics extends Page implements HasTable
     protected static ?int $navigationSort = 35;
 
     protected string $view = 'filament.pages.player-analytics';
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportTopPlayers')
+                ->label('Выгрузить топ игроков')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->schema([
+                    TextInput::make('limit')
+                        ->label('Количество игроков')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->maxValue(10000)
+                        ->default(100)
+                        ->required(),
+                ])
+                ->modalHeading('Выгрузить топ игроков в Excel')
+                ->modalSubmitActionLabel('Выгрузить')
+                ->action(fn (array $data) => PlayerAnalyticsXlsxExporter::download(
+                    $this->topPlayersForExport((int) $data['limit']),
+                    $this->appliedFiltersLabel(),
+                )),
+        ];
+    }
 
     public function table(Table $table): Table
     {
@@ -236,6 +266,57 @@ class PlayerAnalytics extends Page implements HasTable
         return $query;
     }
 
+    /** @return Collection<int, Player> */
+    public function topPlayersForExport(int $limit): Collection
+    {
+        return $this->getFilteredTableQuery()
+            ->reorder()
+            ->orderByDesc('ltv_total')
+            ->orderBy('players.nickname')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function appliedFiltersLabel(): string
+    {
+        $filters = [];
+        $period = $this->getTableFilterState('played_at') ?? [];
+
+        if (filled($period['from'] ?? null)) {
+            $filters[] = 'С даты: '.Carbon::parse($period['from'])->format('d.m.Y');
+        }
+
+        if (filled($period['until'] ?? null)) {
+            $filters[] = 'По дату: '.Carbon::parse($period['until'])->format('d.m.Y');
+        }
+
+        $eveningTypeId = $this->getTableFilterState('evening_type_id')['value'] ?? null;
+        if (filled($eveningTypeId)) {
+            $filters[] = 'Тип вечера: '.(EveningType::query()->find($eveningTypeId)?->name ?? '—');
+        }
+
+        $projectId = $this->getTableFilterState('project_id')['value'] ?? null;
+        if (filled($projectId)) {
+            $filters[] = 'Проект: '.(Project::query()->find($projectId)?->name ?? '—');
+        }
+
+        $funnelStatus = $this->getTableFilterState('funnel_status')['value'] ?? null;
+        if (filled($funnelStatus)) {
+            $filters[] = 'Статус: '.$this->funnelStatusLabel($funnelStatus);
+        }
+
+        $activityStatus = $this->getTableFilterState('activity_status')['value'] ?? null;
+        if (filled($activityStatus)) {
+            $filters[] = 'Статус активности: '.$this->activityStatusLabel($activityStatus);
+        }
+
+        if (filled($this->getTableSearch())) {
+            $filters[] = 'Поиск: '.$this->getTableSearch();
+        }
+
+        return $filters === [] ? 'Фильтры: не применены' : 'Фильтры: '.implode('; ', $filters);
+    }
+
     private function hasVisitFilters(): bool
     {
         $period = $this->getTableFilterState('played_at') ?? [];
@@ -385,6 +466,16 @@ class PlayerAnalytics extends Page implements HasTable
             'contender' => 'Претендент',
             'active' => 'Активный',
             'regular' => 'Постоянный',
+            default => '—',
+        };
+    }
+
+    private function activityStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'season_player' => 'Игрок сезона',
+            'club_player' => 'Клубный игрок',
+            'club_guest' => 'Гость клуба',
             default => '—',
         };
     }
