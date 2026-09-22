@@ -13,6 +13,7 @@ use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -54,13 +55,6 @@ class AutumnCampaignDashboard extends Page implements HasTable
         return $table
             ->query(fn (): Builder => AutumnCase::query()
                 ->where('autumn_campaign_id', $this->campaignId ?? 0)
-                ->whereNotExists(function ($query): void {
-                    $query->selectRaw('1')
-                        ->from('autumn_cases as newer_cases')
-                        ->whereColumn('newer_cases.autumn_campaign_id', 'autumn_cases.autumn_campaign_id')
-                        ->whereColumn('newer_cases.player_id', 'autumn_cases.player_id')
-                        ->whereColumn('newer_cases.number', '>', 'autumn_cases.number');
-                })
                 ->with(['player:id,nickname', 'campaign:id,name,ends_at'])
                 ->withCount([
                     'participations as progress' => fn (Builder $query): Builder => $query
@@ -73,6 +67,11 @@ class AutumnCampaignDashboard extends Page implements HasTable
                         ->selectRaw('MAX(evenings.played_at)'),
                 ]))
             ->columns([
+                TextColumn::make('position')
+                    ->label('№')
+                    ->rowIndex()
+                    ->alignCenter(),
+
                 TextColumn::make('player.nickname')
                     ->label('Игрок')
                     ->searchable()
@@ -139,6 +138,48 @@ class AutumnCampaignDashboard extends Page implements HasTable
                     ->label('Последний визит')
                     ->date('d.m.Y')
                     ->placeholder('—'),
+            ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Статус')
+                    ->placeholder('Все статусы')
+                    ->options(collect(AutumnCaseStatus::cases())
+                        ->mapWithKeys(fn (AutumnCaseStatus $status): array => [
+                            $status->value => $status->label(),
+                        ])
+                        ->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        $status = AutumnCaseStatus::tryFrom($data['value'] ?? '');
+
+                        if ($status === null) {
+                            return $query;
+                        }
+
+                        $today = today()->toDateString();
+                        $campaignEndsAt = AutumnCampaign::query()
+                            ->whereKey($this->campaignId)
+                            ->value('ends_at') ?? $today;
+
+                        return match ($status) {
+                            AutumnCaseStatus::InProgress => $query
+                                ->whereNull('qualified_at')
+                                ->whereNull('completed_at')
+                                ->whereDate('deadline_at', '>=', $today),
+                            AutumnCaseStatus::RewardAvailable => $query
+                                ->whereNotNull('qualified_at')
+                                ->whereNull('completed_at')
+                                ->when($today > $campaignEndsAt, fn (Builder $query): Builder => $query->whereRaw('1 = 0')),
+                            AutumnCaseStatus::Completed => $query->whereNotNull('completed_at'),
+                            AutumnCaseStatus::Expired => $query
+                                ->whereNull('qualified_at')
+                                ->whereNull('completed_at')
+                                ->whereDate('deadline_at', '<', $today),
+                            AutumnCaseStatus::RewardExpired => $query
+                                ->whereNotNull('qualified_at')
+                                ->whereNull('completed_at')
+                                ->when($today <= $campaignEndsAt, fn (Builder $query): Builder => $query->whereRaw('1 = 0')),
+                        };
+                    }),
             ])
             ->recordActions([
                 Action::make('open')

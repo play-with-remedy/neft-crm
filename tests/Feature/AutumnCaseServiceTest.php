@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\AutumnCaseStatus;
+use App\Filament\Pages\AutumnCampaignDashboard;
 use App\Models\AutumnCampaign;
 use App\Models\AutumnCase;
 use App\Models\Evening;
@@ -13,6 +14,7 @@ use App\Services\AutumnCaseService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AutumnCaseServiceTest extends TestCase
@@ -60,6 +62,68 @@ class AutumnCaseServiceTest extends TestCase
         $this->assertSame(1, $case->number);
         $this->assertSame('2026-10-01', $case->deadline_at->toDateString());
         $this->assertSame(1, $visit->fresh()->autumn_case_visit_number);
+    }
+
+    public function test_dashboard_has_row_numbers_and_can_filter_cases_by_status(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-22');
+
+        $activeCase = AutumnCase::query()->create([
+            'autumn_campaign_id' => $this->campaign->id,
+            'player_id' => $this->player->id,
+            'number' => 1,
+            'started_at' => '2026-09-01',
+            'deadline_at' => '2026-10-01',
+        ]);
+
+        $expiredPlayer = Player::query()->create([
+            'nickname' => 'Просроченный игрок',
+            'first_name' => 'Игрок',
+            'gender' => 'male',
+            'birth_day' => 2,
+            'birth_month' => 2,
+        ]);
+        $expiredCase = AutumnCase::query()->create([
+            'autumn_campaign_id' => $this->campaign->id,
+            'player_id' => $expiredPlayer->id,
+            'number' => 1,
+            'started_at' => '2026-08-01',
+            'deadline_at' => '2026-09-01',
+        ]);
+
+        Livewire::test(AutumnCampaignDashboard::class)
+            ->assertTableColumnExists('position')
+            ->filterTable('status', AutumnCaseStatus::InProgress->value)
+            ->assertCanSeeTableRecords([$activeCase])
+            ->assertCanNotSeeTableRecords([$expiredCase])
+            ->filterTable('status', AutumnCaseStatus::Expired->value)
+            ->assertCanSeeTableRecords([$expiredCase])
+            ->assertCanNotSeeTableRecords([$activeCase]);
+    }
+
+    public function test_dashboard_shows_all_cases_for_the_same_player(): void
+    {
+        CarbonImmutable::setTestNow('2026-09-22');
+
+        $completedCase = AutumnCase::query()->create([
+            'autumn_campaign_id' => $this->campaign->id,
+            'player_id' => $this->player->id,
+            'number' => 1,
+            'started_at' => '2026-09-01',
+            'deadline_at' => '2026-10-01',
+            'qualified_at' => '2026-09-10',
+            'completed_at' => '2026-09-15',
+        ]);
+        $activeCase = AutumnCase::query()->create([
+            'autumn_campaign_id' => $this->campaign->id,
+            'player_id' => $this->player->id,
+            'number' => 2,
+            'started_at' => '2026-09-16',
+            'deadline_at' => '2026-10-16',
+        ]);
+
+        Livewire::test(AutumnCampaignDashboard::class)
+            ->assertCanSeeTableRecords([$completedCase, $activeCase]);
     }
 
     public function test_payment_below_thirty_does_not_open_or_advance_case(): void
