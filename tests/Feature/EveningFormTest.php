@@ -36,4 +36,20 @@ class EveningFormTest extends TestCase
             ->assertSet('data.participants', fn (array $participants): bool => collect($participants)
                 ->every(fn (array $participant): bool => $participant['payment_type_id'] === $paymentType->id));
     }
+
+    public function test_free_batch_payment_resets_and_disables_paid_amount(): void
+    {
+        PaymentType::create(['type' => 'Наличные']);
+        $freePaymentType = PaymentType::create(['type' => 'Бесплатно']);
+        $evening = Evening::create(['played_at' => '2026-09-08 19:00:00']);
+
+        Livewire::test(EditEvening::class, ['record' => $evening->getRouteKey()])
+            ->fillForm(['participants_batch_paid_amount' => 50])
+            ->fillForm(['participants_batch_payment_type_id' => $freePaymentType->id])
+            ->assertSet('data.participants_batch_paid_amount', 0)
+            ->assertFormFieldDisabled('participants_batch_paid_amount')
+            ->callFormComponentAction('participants_batch_actions', 'add_participants_batch')
+            ->assertSet('data.participants', fn (array $participants): bool => collect($participants)
+                ->every(fn (array $participant): bool => (float) $participant['paid_amount'] === 0.0));
+    }
 }

@@ -22,8 +22,14 @@ use Illuminate\Support\Str;
 
 class EveningForm
 {
+    private static ?int $freePaymentTypeId = null;
+
     public static function configure(Schema $schema): Schema
     {
+        self::$freePaymentTypeId = PaymentType::query()
+            ->where('type', 'Бесплатно')
+            ->value('id');
+
         return $schema
             ->components([
                 Section::make('Основное')
@@ -151,7 +157,12 @@ class EveningForm
                                         : null)
                                     ->selectablePlaceholder(false)
                                     ->preload()
-                                    ->live()
+                                    ->afterStateUpdated(function ($state, Set $set): void {
+                                        if (self::isFreePaymentType($state)) {
+                                            $set('participants_batch_paid_amount', 0);
+                                        }
+                                    })
+                                    ->afterStateUpdatedJs(self::resetAmountForFreePaymentJs('participants_batch_paid_amount'))
                                     ->dehydrated(false),
 
                                 TextInput::make('participants_batch_paid_amount')
@@ -159,8 +170,11 @@ class EveningForm
                                     ->numeric()
                                     ->minValue(0)
                                     ->default(0)
-                                    ->afterStateHydrated(fn (TextInput $component, $state) => blank($state) ? $component->state(0) : null)
-                                    ->live()
+                                    ->afterStateHydrated(fn (TextInput $component, $state, Get $get) => blank($state) || self::isFreePaymentType($get('participants_batch_payment_type_id'))
+                                        ? $component->state(0)
+                                        : null)
+                                    ->disabled(fn (Get $get): bool => self::isFreePaymentType($get('participants_batch_payment_type_id')))
+                                    ->extraAlpineAttributes(self::disableAmountForFreePaymentAttributes('participants_batch_payment_type_id'))
                                     ->dehydrated(false),
 
                                 Actions::make([
@@ -272,12 +286,26 @@ class EveningForm
                                                 ->value('id'))
                                             ->selectablePlaceholder(false)
                                             ->preload()
+                                            ->afterStateUpdated(function ($state, Set $set): void {
+                                                if (self::isFreePaymentType($state)) {
+                                                    $set('paid_amount', 0);
+                                                }
+                                            })
+                                            ->afterStateUpdatedJs(self::resetAmountForFreePaymentJs('paid_amount'))
                                             ->required(),
 
                                         TextInput::make('paid_amount')
                                             ->hiddenLabel()
                                             ->numeric()
                                             ->default(0)
+                                            ->afterStateHydrated(function (TextInput $component, $state, Get $get): void {
+                                                if (self::isFreePaymentType($get('payment_type_id'))) {
+                                                    $component->state(0);
+                                                }
+                                            })
+                                            ->disabled(fn (Get $get): bool => self::isFreePaymentType($get('payment_type_id')))
+                                            ->extraAlpineAttributes(self::disableAmountForFreePaymentAttributes('payment_type_id'))
+                                            ->dehydrated()
                                             ->live(debounce: 400)
                                             ->required(),
 
@@ -311,5 +339,33 @@ class EveningForm
         return PaymentType::query()
             ->where('type', 'Наличные')
             ->value('id') ?? PaymentType::query()->orderBy('id')->value('id');
+    }
+
+    private static function isFreePaymentType(mixed $paymentTypeId): bool
+    {
+        return filled($paymentTypeId)
+            && self::$freePaymentTypeId !== null
+            && (int) $paymentTypeId === self::$freePaymentTypeId;
+    }
+
+    private static function resetAmountForFreePaymentJs(string $amountField): string
+    {
+        if (self::$freePaymentTypeId === null) {
+            return '';
+        }
+
+        return "if (Number(\$state) === ".self::$freePaymentTypeId.") { \$set('{$amountField}', 0) }";
+    }
+
+    /** @return array<string, string> */
+    private static function disableAmountForFreePaymentAttributes(string $paymentTypeField): array
+    {
+        if (self::$freePaymentTypeId === null) {
+            return [];
+        }
+
+        return [
+            'x-bind:disabled' => "Number(\$get('{$paymentTypeField}')) === ".self::$freePaymentTypeId,
+        ];
     }
 }
