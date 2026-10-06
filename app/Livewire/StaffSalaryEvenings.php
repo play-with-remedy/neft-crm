@@ -7,11 +7,13 @@ use App\Models\EveningStaff;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
+use Livewire\WithoutUrlPagination;
 use Livewire\WithPagination;
 
 class StaffSalaryEvenings extends Component
 {
     use WithPagination;
+    use WithoutUrlPagination;
 
     public int $hostId;
 
@@ -26,6 +28,11 @@ class StaffSalaryEvenings extends Component
     public ?int $projectId = null;
 
     public string $periodLabel;
+
+    public function mount(): void
+    {
+        $this->resetPage('staffEveningsPage');
+    }
 
     public function render(): View
     {

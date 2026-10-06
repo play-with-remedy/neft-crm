@@ -12,9 +12,11 @@
         .salary-details__stat--accent .salary-details__stat-value { color: #d97706; }
         .dark .salary-details__stat--accent .salary-details__stat-value { color: #fbbf24; }
         .salary-details__list { display: grid; gap: 10px; }
-        .salary-details__item { display: grid; grid-template-columns: 112px minmax(130px, 1.4fr) minmax(120px, 1fr) minmax(100px, .8fr) auto; align-items: center; gap: 14px; border: 1px solid #e4e4e7; border-radius: 14px; padding: 14px 16px; }
+        .salary-details__item { display: grid; grid-template-columns: 38px 112px minmax(130px, 1.4fr) minmax(120px, 1fr) minmax(100px, .8fr) auto; align-items: center; gap: 14px; border: 1px solid #e4e4e7; border-radius: 14px; padding: 14px 16px; }
         .dark .salary-details__item { border-color: rgba(255,255,255,.1); }
         .salary-details__date { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .salary-details__number { color: #71717a; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+        .dark .salary-details__number { color: #a1a1aa; }
         .salary-details__date-icon { display: grid; width: 30px; height: 30px; flex: none; place-items: center; border-radius: 9px; background: rgba(245,158,11,.12); color: #d97706; }
         .dark .salary-details__date-icon { color: #fbbf24; }
         .salary-details__date-icon svg { width: 16px; height: 16px; }
@@ -38,12 +40,13 @@
         @media (max-width: 640px) {
             .salary-details__summary { grid-template-columns: 1fr 1fr; }
             .salary-details__stat:first-child { grid-column: 1 / -1; }
-            .salary-details__item { grid-template-columns: 1fr auto; gap: 8px 12px; padding: 13px; }
-            .salary-details__date { grid-column: 1 / -1; }
-            .salary-details__cell { grid-column: 1; white-space: normal; }
+            .salary-details__item { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 8px 12px; padding: 13px; }
+            .salary-details__number { grid-column: 1; grid-row: 1; text-align: left; }
+            .salary-details__date { grid-column: 2 / -1; grid-row: 1; }
+            .salary-details__cell { grid-column: 1 / 3; white-space: normal; }
             .salary-details__cell--project { color: #71717a; font-size: 12px; }
-            .salary-details__cell--role { grid-column: 2; grid-row: 2; align-self: start; text-align: right; }
-            .salary-details__amount { align-self: end; }
+            .salary-details__cell--role { grid-column: 3; grid-row: 2; align-self: start; text-align: right; }
+            .salary-details__amount { grid-column: 3; grid-row: 3; align-self: end; }
         }
     </style>
 
@@ -66,6 +69,7 @@
         <div class="salary-details__list">
             @foreach ($evenings as $evening)
                 <article class="salary-details__item" wire:key="staff-evening-{{ $evening->id }}">
+                    <div class="salary-details__number">№ {{ $evenings->firstItem() + $loop->index }}</div>
                     <div class="salary-details__date">
                         <span class="salary-details__date-icon"><x-filament::icon icon="heroicon-m-calendar-days" /></span>
                         {{ $evening->played_at->format('d.m.Y') }}

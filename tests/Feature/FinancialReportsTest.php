@@ -326,12 +326,41 @@ class FinancialReportsTest extends TestCase
             ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 5
                 && $evenings->perPage() === 5
                 && $evenings->currentPage() === 1)
+            ->assertSee('№ 1')
+            ->assertSee('№ 5')
             ->call('nextPage', 'staffEveningsPage')
             ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 5
                 && $evenings->currentPage() === 2)
+            ->assertSee('№ 6')
+            ->assertSee('№ 10')
             ->call('nextPage', 'staffEveningsPage')
             ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 1
-                && $evenings->currentPage() === 3);
+                && $evenings->currentPage() === 3)
+            ->assertSee('№ 11');
+    }
+
+    public function test_staff_salary_evenings_modal_ignores_stale_page_from_url(): void
+    {
+        $host = Host::create(['nickname' => 'Employee with a short history']);
+
+        Evening::create(['played_at' => '2026-03-01 19:00:00'])
+            ->staff()
+            ->create([
+                'host_id' => $host->id,
+                'role' => 'host',
+                'salary' => 50,
+            ]);
+
+        Livewire::withQueryParams(['staffEveningsPage' => 5])
+            ->test(StaffSalaryEvenings::class, [
+                'hostId' => $host->id,
+                'role' => 'host',
+                'periodLabel' => 'За всё время',
+            ])
+            ->assertViewHas('evenings', fn ($evenings): bool => $evenings->count() === 1
+                && $evenings->currentPage() === 1)
+            ->assertSee('01.03.2026')
+            ->assertSee('№ 1');
     }
 
     public function test_staff_salary_filters_limit_totals_and_details_by_project_type_and_project(): void

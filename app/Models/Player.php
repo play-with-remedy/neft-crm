@@ -76,6 +76,11 @@ class Player extends Model
         return $this->hasMany(EveningParticipant::class);
     }
 
+    public function purchasedCertificates(): HasMany
+    {
+        return $this->hasMany(Certificate::class);
+    }
+
     public function autumnCases(): HasMany
     {
         return $this->hasMany(AutumnCase::class);

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Evenings\Pages\EditEvening;
 use App\Models\Evening;
+use App\Models\ExpenseCategory;
 use App\Models\PaymentType;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
@@ -51,5 +52,41 @@ class EveningFormTest extends TestCase
             ->callFormComponentAction('participants_batch_actions', 'add_participants_batch')
             ->assertSet('data.participants', fn (array $participants): bool => collect($participants)
                 ->every(fn (array $participant): bool => (float) $participant['paid_amount'] === 0.0));
+    }
+
+    public function test_invalid_evening_date_is_rejected_without_losing_form_state(): void
+    {
+        $evening = Evening::create(['played_at' => '2026-09-08 19:00:00']);
+
+        Livewire::test(EditEvening::class, ['record' => $evening->getRouteKey()])
+            ->fillForm([
+                'played_at' => '3026-09-08',
+                'participants_batch_count' => 17,
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['played_at' => 'before_or_equal'])
+            ->assertSet('data.played_at', '3026-09-08')
+            ->assertSet('data.participants_batch_count', 17);
+
+        $this->assertSame('2026-09-08', $evening->fresh()->played_at->toDateString());
+    }
+
+    public function test_duplicate_expense_categories_are_rejected_before_database_save(): void
+    {
+        $category = ExpenseCategory::create(['name' => 'Аренда']);
+        $evening = Evening::create(['played_at' => '2026-09-08 19:00:00']);
+
+        Livewire::test(EditEvening::class, ['record' => $evening->getRouteKey()])
+            ->fillForm([
+                'expenses' => [
+                    ['expense_category_id' => $category->id, 'amount' => 100],
+                    ['expense_category_id' => $category->id, 'amount' => 200],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors()
+            ->assertSee('Эта статья расходов уже добавлена.');
+
+        $this->assertCount(0, $evening->fresh()->expenses);
     }
 }

@@ -48,7 +48,16 @@ class EveningForm
 
                         DatePicker::make('played_at')
                             ->label('Дата проведения')
-                            ->required(),
+                            ->native()
+                            ->minDate('2000-01-01')
+                            ->maxDate(fn (): string => today()->toDateString())
+                            ->required()
+                            ->validationMessages([
+                                'required' => 'Укажите дату проведения.',
+                                'date' => 'Укажите корректную дату.',
+                                'after_or_equal' => 'Дата не может быть раньше 01.01.2000.',
+                                'before_or_equal' => 'Дата не может быть позже сегодняшнего дня.',
+                            ]),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -68,12 +77,17 @@ class EveningForm
                                     ->hiddenLabel()
                                     ->relationship('category', 'name')
                                     ->preload()
+                                    ->distinct()
+                                    ->validationMessages([
+                                        'distinct' => 'Эта статья расходов уже добавлена.',
+                                    ])
                                     ->required(),
 
                                 TextInput::make('amount')
                                     ->hiddenLabel()
                                     ->numeric()
                                     ->minValue(0)
+                                    ->maxValue(9999999999.99)
                                     ->default(0)
                                     ->required(),
                             ])
@@ -117,6 +131,7 @@ class EveningForm
                                     ->hiddenLabel()
                                     ->numeric()
                                     ->minValue(0)
+                                    ->maxValue(2147483647)
                                     ->default(0)
                                     ->required(),
                             ])
@@ -297,6 +312,8 @@ class EveningForm
                                         TextInput::make('paid_amount')
                                             ->hiddenLabel()
                                             ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(99999999.99)
                                             ->default(0)
                                             ->afterStateHydrated(function (TextInput $component, $state, Get $get): void {
                                                 if (self::isFreePaymentType($get('payment_type_id'))) {
