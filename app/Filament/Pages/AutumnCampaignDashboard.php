@@ -190,7 +190,23 @@ class AutumnCampaignDashboard extends Page implements HasTable
                         ['record' => $record->player_id],
                     )),
             ])
-            ->defaultSort('progress', 'desc')
+            ->defaultSort(function (Builder $query): Builder {
+                $today = today()->toDateString();
+                $campaignEndsAt = AutumnCampaign::query()
+                    ->whereKey($this->campaignId)
+                    ->value('ends_at') ?? $today;
+
+                return $query
+                    ->orderByRaw(
+                        'CASE
+                            WHEN qualified_at IS NOT NULL AND completed_at IS NULL AND ? <= ? THEN 0
+                            WHEN qualified_at IS NULL AND completed_at IS NULL AND deadline_at >= ? THEN 1
+                            ELSE 2
+                        END',
+                        [$today, $campaignEndsAt, $today],
+                    )
+                    ->orderByDesc('last_visit_at');
+            })
             ->emptyStateHeading('Дел пока нет')
             ->emptyStateDescription('Первое дело появится после посещения игрока во время кампании.');
     }
