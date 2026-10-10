@@ -10,6 +10,7 @@ use App\Filament\Pages\PlayerFunnel;
 use App\Filament\Pages\StaffSalaries;
 use App\Livewire\StaffSalaryEvenings;
 use App\Models\Evening;
+use App\Models\EveningParticipant;
 use App\Models\EveningType;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialCategory;
@@ -19,11 +20,10 @@ use App\Models\Host;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
-use App\Support\PlayerAnalyticsXlsxExporter;
+use App\Support\PlayerCsvExporter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
-use OpenSpout\Reader\XLSX\Reader;
 use PDO;
 use Tests\TestCase;
 
@@ -581,13 +581,17 @@ class FinancialReportsTest extends TestCase
         $this->assertSame('1 месяц 4 дня', $table->getColumn('duration')->record($record)->getState());
     }
 
-    public function test_player_analytics_exports_filtered_top_players_to_xlsx(): void
+    public function test_player_analytics_exports_filtered_top_200_in_player_import_csv_format(): void
     {
         $paymentType = PaymentType::create(['type' => 'Cash']);
         $wantedType = EveningType::create(['name' => 'Quiz']);
         $otherType = EveningType::create(['name' => 'Mafia']);
         $wantedProject = Project::create(['name' => 'Main project']);
-        $topPlayer = Player::create(['nickname' => 'Top player']);
+        $topPlayer = Player::create([
+            'nickname' => 'Top player',
+            'first_name' => 'Top',
+            'first_visit_at' => '2025-01-10',
+        ]);
         $secondPlayer = Player::create(['nickname' => 'Second player']);
         $excludedPlayer = Player::create(['nickname' => 'Excluded player']);
 
@@ -606,6 +610,35 @@ class FinancialReportsTest extends TestCase
             ['player_id' => $topPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 150],
             ['player_id' => $secondPlayer->id, 'payment_type_id' => $paymentType->id, 'paid_amount' => 100],
         ]);
+
+        $timestamp = now();
+        $additionalPlayers = collect(range(1, 199))->map(fn (int $index): array => [
+            'nickname' => 'Additional player '.str_pad((string) $index, 3, '0', STR_PAD_LEFT),
+            'first_name' => '',
+            'gender' => 'male',
+            'birth_day' => 1,
+            'birth_month' => 1,
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
+
+        Player::query()->insert($additionalPlayers->all());
+
+        $additionalPlayerIds = Player::query()
+            ->where('nickname', 'like', 'Additional player %')
+            ->pluck('id');
+
+        EveningParticipant::query()->insert(
+            $additionalPlayerIds->map(fn (int $playerId): array => [
+                'evening_id' => $wantedEvening->id,
+                'player_id' => $playerId,
+                'payment_type_id' => $paymentType->id,
+                'paid_amount' => 10,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ])->all(),
+        );
+
         $otherEvening->participants()->create([
             'player_id' => $excludedPlayer->id,
             'payment_type_id' => $paymentType->id,
@@ -618,43 +651,61 @@ class FinancialReportsTest extends TestCase
             ->filterTable('project_id', $wantedProject->id)
             ->assertActionExists('exportTopPlayers');
 
-        $players = $component->instance()->topPlayersForExport(1);
-        $filters = $component->instance()->appliedFiltersLabel();
+        $modalDescription = (string) $component->instance()
+            ->getAction('exportTopPlayers')
+            ->getModalDescription();
 
-        $this->assertCount(1, $players);
+        $this->assertStringContainsString('width:1rem;height:1rem', $modalDescription);
+        $this->assertStringContainsString('color:#f59e0b', $modalDescription);
+
+        $players = $component->instance()->topPlayersForExport(200);
+
+        $this->assertCount(200, $players);
         $this->assertTrue($players->first()->is($topPlayer));
-        $this->assertSame(150, (int) $players->first()->ltv_total);
-        $this->assertStringContainsString('01.05.2026', $filters);
-        $this->assertStringContainsString('Quiz', $filters);
-        $this->assertStringContainsString('Main project', $filters);
+        $this->assertTrue($players->get(1)->is($secondPlayer));
+        $this->assertFalse($players->contains($excludedPlayer));
+        $this->assertSame('2025-01-10', $players->first()->first_visit_at->format('Y-m-d'));
 
         $component
-            ->callAction('exportTopPlayers', ['limit' => 1])
+            ->callAction('exportTopPlayers', ['limit' => 200])
             ->assertFileDownloaded();
 
         $path = tempnam(sys_get_temp_dir(), 'player-analytics-');
 
         try {
-            PlayerAnalyticsXlsxExporter::write($players, $filters, $path);
+            PlayerCsvExporter::write($players, $path);
 
-            $reader = new Reader;
-            $reader->open($path);
+            $handle = fopen($path, 'r');
             $rows = [];
+            $bom = fread($handle, 3);
 
-            foreach ($reader->getSheetIterator() as $sheet) {
-                foreach ($sheet->getRowIterator() as $row) {
-                    $rows[] = array_map(fn ($cell) => $cell->getValue(), $row->getCells());
-                }
-
-                break;
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
             }
 
-            $reader->close();
+            while (($row = fgetcsv($handle, separator: ';')) !== false) {
+                $rows[] = $row;
+            }
 
-            $this->assertSame($filters, $rows[0][0]);
-            $this->assertSame(['Ник', 'LTV всего'], $rows[1]);
-            $this->assertSame('Top player', $rows[2][0]);
-            $this->assertSame(150, $rows[2][1]);
+            fclose($handle);
+
+            $this->assertSame([
+                'Игровой ник',
+                'Имя',
+                'Фамилия',
+                'Телефон',
+                'Telegram',
+                'Дата рождения',
+                'Пол',
+                'Источник',
+                'Дата первого посещения',
+                'Ведущий',
+            ], $rows[0]);
+            $this->assertSame('Top player', $rows[1][0]);
+            $this->assertSame('Top', $rows[1][1]);
+            $this->assertSame('10.01.2025', $rows[1][8]);
+            $this->assertSame('Second player', $rows[2][0]);
+            $this->assertCount(201, $rows);
         } finally {
             @unlink($path);
         }

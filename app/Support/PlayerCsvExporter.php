@@ -5,60 +5,74 @@ namespace App\Support;
 use App\Models\Player;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Enumerable;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PlayerCsvExporter
 {
     public static function downloadAll(): StreamedResponse
     {
-        $fileName = 'players-all-' . now()->format('Y-m-d-H-i-s') . '.csv';
-
-        return response()->streamDownload(function (): void {
-            $handle = fopen('php://output', 'w');
-
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            fputcsv($handle, [
-                'Игровой ник',
-                'Имя',
-                'Фамилия',
-                'Телефон',
-                'Telegram',
-                'Дата рождения',
-                'Пол',
-                'Источник',
-                'Дата первого посещения',
-                'Ведущий',
-            ], ';');
-
+        return self::download(
             Player::query()
                 ->with(['source', 'firstHost'])
                 ->orderBy('nickname')
-                ->chunk(500, function ($players) use ($handle): void {
-                    foreach ($players as $player) {
-                        fputcsv($handle, [
-                            $player->nickname,
-                            $player->first_name,
-                            $player->last_name,
-                            $player->phone,
-                            $player->telegram ? '@' . ltrim($player->telegram, '@') : '',
-                            self::formatBirthday($player),
-                            match ($player->gender) {
-                                'male' => 'м',
-                                'female' => 'ж',
-                                default => '',
-                            },
-                            $player->source?->name,
-                            self::formatDate($player->first_visit_at),
-                            $player->firstHost?->nickname,
-                        ], ';');
-                    }
-                });
+                ->lazy(500),
+            'players-all',
+        );
+    }
 
-            fclose($handle);
-        }, $fileName, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+    /** @param Enumerable<int, Player> $players */
+    public static function download(Enumerable $players, string $fileNamePrefix = 'players'): StreamedResponse
+    {
+        $fileName = $fileNamePrefix.'-'.now()->format('Y-m-d-H-i-s').'.csv';
+
+        return response()->streamDownload(
+            fn () => self::write($players, 'php://output'),
+            $fileName,
+            ['Content-Type' => 'text/csv; charset=UTF-8'],
+        );
+    }
+
+    /** @param Enumerable<int, Player> $players */
+    public static function write(Enumerable $players, string $path): void
+    {
+        $handle = fopen($path, 'w');
+
+        fwrite($handle, "\xEF\xBB\xBF");
+
+        fputcsv($handle, [
+            'Игровой ник',
+            'Имя',
+            'Фамилия',
+            'Телефон',
+            'Telegram',
+            'Дата рождения',
+            'Пол',
+            'Источник',
+            'Дата первого посещения',
+            'Ведущий',
+        ], ';');
+
+        foreach ($players as $player) {
+            fputcsv($handle, [
+                $player->nickname,
+                $player->first_name,
+                $player->last_name,
+                $player->phone,
+                $player->telegram ? '@'.ltrim($player->telegram, '@') : '',
+                self::formatBirthday($player),
+                match ($player->gender) {
+                    'male' => 'м',
+                    'female' => 'ж',
+                    default => '',
+                },
+                $player->source?->name,
+                self::formatDate($player->first_visit_at),
+                $player->firstHost?->nickname,
+            ], ';');
+        }
+
+        fclose($handle);
     }
 
     private static function formatBirthday(Player $player): string
@@ -71,7 +85,7 @@ class PlayerCsvExporter
             '%02d.%02d%s',
             $player->birth_day,
             $player->birth_month,
-            $player->birth_year ? '.' . $player->birth_year : '',
+            $player->birth_year ? '.'.$player->birth_year : '',
         );
     }
 

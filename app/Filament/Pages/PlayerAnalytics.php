@@ -7,7 +7,7 @@ use App\Models\EveningParticipant;
 use App\Models\EveningType;
 use App\Models\Player;
 use App\Models\Project;
-use App\Support\PlayerAnalyticsXlsxExporter;
+use App\Support\PlayerCsvExporter;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -48,7 +48,7 @@ class PlayerAnalytics extends Page implements HasTable
     {
         return [
             Action::make('exportTopPlayers')
-                ->label('Выгрузить топ игроков')
+                ->label('Экспорт CSV')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->schema([
@@ -58,14 +58,28 @@ class PlayerAnalytics extends Page implements HasTable
                         ->integer()
                         ->minValue(1)
                         ->maxValue(10000)
-                        ->default(100)
+                        ->default(200)
                         ->required(),
                 ])
-                ->modalHeading('Выгрузить топ игроков в Excel')
+                ->modalHeading('Экспорт топ игроков по LTV.')
+                ->modalDescription(new HtmlString(
+                    '<span style="display:inline-flex;align-items:flex-start;gap:0.5rem;text-align:left">'
+                    .'<svg style="width:1rem;height:1rem;min-width:1rem;margin-top:0.125rem;color:#f59e0b" '
+                    .'xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" '
+                    .'stroke-width="2" stroke="currentColor" aria-hidden="true">'
+                    .'<path stroke-linecap="round" stroke-linejoin="round" '
+                    .'d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 '
+                    .'2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 '
+                    .'16.126ZM12 15.75h.007v.008H12v-.008Z" />'
+                    .'</svg>'
+                    .'<span>Выгрузка формируется по LTV с учётом фильтров и поиска, применённых на этой странице. '
+                    .'В CSV попадёт указанное количество игроков с наибольшим LTV.</span>'
+                    .'</span>',
+                ))
                 ->modalSubmitActionLabel('Выгрузить')
-                ->action(fn (array $data) => PlayerAnalyticsXlsxExporter::download(
+                ->action(fn (array $data) => PlayerCsvExporter::download(
                     $this->topPlayersForExport((int) $data['limit']),
-                    $this->appliedFiltersLabel(),
+                    'players-top-ltv',
                 )),
         ];
     }
@@ -269,52 +283,26 @@ class PlayerAnalytics extends Page implements HasTable
     /** @return Collection<int, Player> */
     public function topPlayersForExport(int $limit): Collection
     {
-        return $this->getFilteredTableQuery()
+        $rankedPlayers = $this->getFilteredTableQuery()
             ->reorder()
             ->orderByDesc('ltv_total')
             ->orderBy('players.nickname')
             ->limit($limit)
             ->get();
-    }
 
-    public function appliedFiltersLabel(): string
-    {
-        $filters = [];
-        $period = $this->getTableFilterState('played_at') ?? [];
+        $playersById = Player::query()
+            ->with(['source', 'firstHost'])
+            ->whereKey($rankedPlayers->modelKeys())
+            ->get()
+            ->keyBy(fn (Player $player): int => $player->getKey());
 
-        if (filled($period['from'] ?? null)) {
-            $filters[] = 'С даты: '.Carbon::parse($period['from'])->format('d.m.Y');
-        }
-
-        if (filled($period['until'] ?? null)) {
-            $filters[] = 'По дату: '.Carbon::parse($period['until'])->format('d.m.Y');
-        }
-
-        $eveningTypeId = $this->getTableFilterState('evening_type_id')['value'] ?? null;
-        if (filled($eveningTypeId)) {
-            $filters[] = 'Тип вечера: '.(EveningType::query()->find($eveningTypeId)?->name ?? '—');
-        }
-
-        $projectId = $this->getTableFilterState('project_id')['value'] ?? null;
-        if (filled($projectId)) {
-            $filters[] = 'Проект: '.(Project::query()->find($projectId)?->name ?? '—');
-        }
-
-        $funnelStatus = $this->getTableFilterState('funnel_status')['value'] ?? null;
-        if (filled($funnelStatus)) {
-            $filters[] = 'Статус: '.$this->funnelStatusLabel($funnelStatus);
-        }
-
-        $activityStatus = $this->getTableFilterState('activity_status')['value'] ?? null;
-        if (filled($activityStatus)) {
-            $filters[] = 'Статус активности: '.$this->activityStatusLabel($activityStatus);
-        }
-
-        if (filled($this->getTableSearch())) {
-            $filters[] = 'Поиск: '.$this->getTableSearch();
-        }
-
-        return $filters === [] ? 'Фильтры: не применены' : 'Фильтры: '.implode('; ', $filters);
+        return new Collection(
+            $rankedPlayers
+                ->map(fn (Player $player): ?Player => $playersById->get($player->getKey()))
+                ->filter()
+                ->values()
+                ->all(),
+        );
     }
 
     private function hasVisitFilters(): bool
@@ -466,16 +454,6 @@ class PlayerAnalytics extends Page implements HasTable
             'contender' => 'Претендент',
             'active' => 'Активный',
             'regular' => 'Постоянный',
-            default => '—',
-        };
-    }
-
-    private function activityStatusLabel(string $status): string
-    {
-        return match ($status) {
-            'season_player' => 'Игрок сезона',
-            'club_player' => 'Клубный игрок',
-            'club_guest' => 'Гость клуба',
             default => '—',
         };
     }
