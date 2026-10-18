@@ -53,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 'Клуб',
+                'Продажи',
                 'Отчеты',
                 'Синхронизация',
                 'Системная таблица',

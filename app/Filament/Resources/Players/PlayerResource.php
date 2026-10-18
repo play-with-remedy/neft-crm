@@ -9,6 +9,7 @@ use App\Filament\Resources\Players\Pages\PlayerStatistics;
 use App\Filament\Resources\Players\Pages\PlayerAutumnCase;
 use App\Filament\Resources\Players\Pages\ViewPlayer;
 use App\Filament\Resources\Players\Schemas\PlayerInfolist;
+use App\Filament\Forms\Components\PhoneInput;
 use App\Enums\NavigationGroup;
 use App\Models\Player;
 use BackedEnum;
@@ -119,25 +120,7 @@ class PlayerResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                TextInput::make('phone')
-                    ->label('Телефон')
-                    ->prefix('375')
-                    ->placeholder('XX XXXXXXX')
-                    ->mask('99 9999999')
-                    ->formatStateUsing(function (?string $state): ?string {
-                        $digits = preg_replace('/\D/', '', (string) $state);
-
-                        return $digits === '' ? null : preg_replace('/^375/', '', $digits);
-                    })
-                    ->dehydrateStateUsing(function (?string $state): ?string {
-                        $digits = preg_replace('/\D/', '', (string) $state);
-
-                        return $digits === '' ? null : '+375' . $digits;
-                    })
-                    ->rule('regex:/^\d{2} \d{7}$/')
-                    ->validationMessages([
-                        'regex' => 'Введите код и 7 цифр номера.',
-                    ]),
+                PhoneInput::make(),
 
                 TextInput::make('telegram')
                     ->label('Telegram')

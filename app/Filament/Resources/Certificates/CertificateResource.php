@@ -27,9 +27,9 @@ class CertificateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Сертификаты';
 
-    protected static UnitEnum|string|null $navigationGroup = 'Клуб';
+    protected static UnitEnum|string|null $navigationGroup = 'Продажи';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
