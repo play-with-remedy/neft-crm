@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class Player extends Model
 {
@@ -55,6 +56,40 @@ class Player extends Model
         }
 
         return $recentVisitsCount >= self::CLUB_PLAYER_VISITS_THRESHOLD ? 'Клубный игрок' : 'Гость клуба';
+    }
+
+    public static function funnelStatusKey(int $visitsCount): string
+    {
+        return match (true) {
+            $visitsCount >= 21 => 'regular',
+            $visitsCount >= 10 => 'active',
+            $visitsCount >= 5 => 'contender',
+            $visitsCount === 4 => 'engaged',
+            $visitsCount === 3 => 'interested',
+            $visitsCount === 2 => 'returned',
+            $visitsCount === 1 => 'new',
+            default => 'none',
+        };
+    }
+
+    public static function funnelStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'new' => 'Новый',
+            'returned' => 'Вернулся',
+            'interested' => 'Заинтересован',
+            'engaged' => 'Вовлечён',
+            'contender' => 'Претендент',
+            'active' => 'Активный',
+            'regular' => 'Постоянный',
+            default => '—',
+        };
+    }
+
+    /** @return array{0: Carbon, 1: Carbon} */
+    public static function activityPeriod(): array
+    {
+        return [now()->startOfMonth()->subMonthsNoOverflow(4), now()];
     }
 
     protected $casts = [

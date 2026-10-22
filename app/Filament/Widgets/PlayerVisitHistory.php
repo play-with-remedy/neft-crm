@@ -5,12 +5,18 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Evenings\EveningResource;
 use App\Models\EveningParticipant;
 use App\Models\Player;
+use App\Support\FilamentAccess;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 
 class PlayerVisitHistory extends TableWidget
 {
+    public static function canView(): bool
+    {
+        return FilamentAccess::isSuperAdmin();
+    }
+
     protected static bool $isLazy = false;
 
     protected int | string | array $columnSpan = 'full';

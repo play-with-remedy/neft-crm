@@ -9,7 +9,7 @@ use App\Filament\Resources\FinancialCategories\Schemas\FinancialCategoryForm;
 use App\Filament\Resources\FinancialCategories\Tables\FinancialCategoriesTable;
 use App\Models\FinancialCategory;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

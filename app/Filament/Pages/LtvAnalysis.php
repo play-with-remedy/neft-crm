@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\EveningParticipant;
 use App\Models\Player;
 use BackedEnum;
-use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;

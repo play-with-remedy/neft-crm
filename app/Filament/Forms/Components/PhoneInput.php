@@ -17,7 +17,7 @@ class PhoneInput
         ])
             ->schema([
                 Select::make('phone_country_code')
-                    ->label('Код страны')
+                    ->label('Код')
                     ->options([
                         '375' => '+375',
                         '7' => '+7',
@@ -25,9 +25,8 @@ class PhoneInput
                     ->default('375')
                     ->native(false)
                     ->selectablePlaceholder(false)
-                    ->required()
                     ->live()
-                    ->columnSpan(2),
+                    ->columnSpan(['default' => 4]),
 
                 TextInput::make('phone')
                     ->key(fn (Get $get): string => 'phone-' . self::countryCode($get))
@@ -70,7 +69,7 @@ class PhoneInput
                     ->validationMessages([
                         'regex' => 'Введите корректный номер телефона.',
                     ])
-                    ->columnSpan(10),
+                    ->columnSpan(['default' => 8]),
             ])
             ->columnSpanFull();
     }

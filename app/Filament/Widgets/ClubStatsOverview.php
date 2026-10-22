@@ -5,12 +5,18 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Evenings\EveningResource;
 use App\Filament\Resources\Players\PlayerResource;
 use App\Models\Evening;
+use App\Support\FilamentAccess;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Collection;
 
 class ClubStatsOverview extends StatsOverviewWidget
 {
+    public static function canView(): bool
+    {
+        return FilamentAccess::isSuperAdmin();
+    }
+
     protected static bool $isLazy = false;
 
     protected static ?int $sort = 1;

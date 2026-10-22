@@ -7,7 +7,7 @@ use App\Filament\Resources\Certificates\Schemas\CertificateForm;
 use App\Filament\Resources\Certificates\Tables\CertificatesTable;
 use App\Models\Certificate;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

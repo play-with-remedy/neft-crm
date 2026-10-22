@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Evenings\Schemas;
 
 use App\Models\PaymentType;
+use App\Rules\UnlockedEveningDate;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
@@ -51,6 +52,7 @@ class EveningForm
                             ->native()
                             ->minDate('2000-01-01')
                             ->maxDate(fn (): string => today()->toDateString())
+                            ->rule(new UnlockedEveningDate)
                             ->required()
                             ->validationMessages([
                                 'required' => 'Укажите дату проведения.',

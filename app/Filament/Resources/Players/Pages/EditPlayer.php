@@ -22,7 +22,11 @@ class EditPlayer extends EditRecord
                 ->modalHeading('Удаление игрока')
                 ->modalDescription('Вы уверены, что хотите удалить игрока?')
                 ->modalSubmitActionLabel('Удалить')
-                ->modalCancelActionLabel('Отмена'),
+                ->modalCancelActionLabel('Отмена')
+                ->modalFooterActions(fn (DeleteAction $action): array => [
+                    $action->getModalSubmitAction(),
+                    $action->getModalCancelAction(),
+                ]),
         ];
     }
 

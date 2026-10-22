@@ -17,7 +17,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
@@ -25,6 +25,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class PlayerResource extends Resource
@@ -120,7 +122,8 @@ class PlayerResource extends Resource
                     ])
                     ->columnSpanFull(),
 
-                PhoneInput::make(),
+                PhoneInput::make()
+                    ->columnSpan(1),
 
                 TextInput::make('telegram')
                     ->label('Telegram')
@@ -152,7 +155,7 @@ class PlayerResource extends Resource
                     ->rows(4)
                     ->columnSpanFull(),
             ])
-            ->columns(2);
+            ->columns(3);
     }
 
     public static function infolist(Schema $schema): Schema
@@ -162,7 +165,19 @@ class PlayerResource extends Resource
 
     public static function table(Table $table): Table
     {
+        [$activityPeriodFrom, $activityPeriodUntil] = Player::activityPeriod();
+
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount([
+                'participations as lifetime_visits_count',
+                'participations as recent_visits_count' => fn (Builder $query): Builder => $query->whereHas(
+                    'evening',
+                    fn (Builder $query): Builder => $query->whereBetween(
+                        'played_at',
+                        [$activityPeriodFrom, $activityPeriodUntil],
+                    ),
+                ),
+            ]))
             ->columns([
                 Tables\Columns\TextColumn::make('nickname')
                     ->label('Никнейм')
@@ -173,9 +188,40 @@ class PlayerResource extends Resource
                     ->label('Имя')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('last_name')
-                    ->label('Фамилия')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Статус')
+                    ->state(fn (Player $record): string => Player::funnelStatusKey(
+                        (int) $record->lifetime_visits_count,
+                    ))
+                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString(
+                        view('filament.pages.partials.player-status-badge', [
+                            'stageKey' => $state,
+                            'label' => Player::funnelStatusLabel($state),
+                        ])->render()
+                    ))
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderBy('lifetime_visits_count', $direction)),
+
+                Tables\Columns\TextColumn::make('activity_status')
+                    ->label('Статус активности')
+                    ->state(fn (Player $record): string => $record->activity_status_label)
+                    ->formatStateUsing(fn (string $state): HtmlString => new HtmlString(
+                        view('filament.pages.partials.player-activity-status-badge', [
+                            'label' => $state,
+                        ])->render()
+                    ))
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw(
+                            "CASE
+                                WHEN manual_activity_status = ? THEN 3
+                                WHEN recent_visits_count >= ? THEN 2
+                                ELSE 1
+                            END {$direction}",
+                            [
+                                Player::MANUAL_ACTIVITY_STATUS_SEASON_PLAYER,
+                                Player::CLUB_PLAYER_VISITS_THRESHOLD,
+                            ],
+                        )),
 
                 Tables\Columns\TextColumn::make('birthday')
                     ->label('Дата рождения')
@@ -208,10 +254,8 @@ class PlayerResource extends Resource
 
                 Tables\Columns\TextColumn::make('first_visit_at')
                     ->label('Первое посещение')
-                    ->date(),
+                    ->date('d.m.Y'),
 
-                Tables\Columns\TextColumn::make('firstHost.nickname')
-                    ->label('Ведущий'),
             ])
             ->filters([
                 Filter::make('birth_month_filter')

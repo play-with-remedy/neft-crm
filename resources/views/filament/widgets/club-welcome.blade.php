@@ -16,16 +16,12 @@
         </div>
 
         <div class="club-welcome__actions">
-            <a class="club-welcome__button club-welcome__button--secondary" href="{{ $cashBookUrl }}">
-                <x-filament::icon icon="heroicon-o-chart-bar" />
-                Кассовая книга
-            </a>
-            <a class="club-welcome__button club-welcome__button--secondary" href="{{ $createPlayerUrl }}">
+            <a class="club-welcome__button club-welcome__button--primary" href="{{ $createPlayerUrl }}">
                 <x-filament::icon icon="heroicon-o-user-plus" />
                 Новый игрок
             </a>
             <a class="club-welcome__button club-welcome__button--primary" href="{{ $createEveningUrl }}">
-                <x-filament::icon icon="heroicon-o-plus" />
+                <x-filament::icon icon="heroicon-o-calendar-days" />
                 Добавить вечер
             </a>
         </div>
@@ -120,18 +116,6 @@
     .club-welcome__button svg {
         width: 1rem;
         height: 1rem;
-    }
-
-    .club-welcome__button--secondary {
-        border: 1px solid rgba(255, 255, 255, .15);
-        color: rgba(255, 255, 255, .9);
-        background: rgba(255, 255, 255, .07);
-        backdrop-filter: blur(8px);
-    }
-
-    .club-welcome__button--secondary:hover {
-        border-color: rgba(255, 255, 255, .25);
-        background: rgba(255, 255, 255, .12);
     }
 
     .club-welcome__button--primary {

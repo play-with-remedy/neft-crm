@@ -12,7 +12,6 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
-use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -400,7 +399,7 @@ class PlayerAnalytics extends Page implements HasTable
     /** @return array{0: Carbon, 1: Carbon} */
     private function activityPeriod(): array
     {
-        return [now()->startOfMonth()->subMonthsNoOverflow(4), now()];
+        return Player::activityPeriod();
     }
 
     private function formatDuration(Player $player): string
@@ -432,30 +431,12 @@ class PlayerAnalytics extends Page implements HasTable
 
     private function funnelStatusKey(int $visits): string
     {
-        return match (true) {
-            $visits >= 21 => 'regular',
-            $visits >= 10 => 'active',
-            $visits >= 5 => 'contender',
-            $visits === 4 => 'engaged',
-            $visits === 3 => 'interested',
-            $visits === 2 => 'returned',
-            $visits === 1 => 'new',
-            default => 'none',
-        };
+        return Player::funnelStatusKey($visits);
     }
 
     private function funnelStatusLabel(string $status): string
     {
-        return match ($status) {
-            'new' => 'Новый',
-            'returned' => 'Вернулся',
-            'interested' => 'Заинтересован',
-            'engaged' => 'Вовлечён',
-            'contender' => 'Претендент',
-            'active' => 'Активный',
-            'regular' => 'Постоянный',
-            default => '—',
-        };
+        return Player::funnelStatusLabel($status);
     }
 
     private function russianPlural(int $number, string $one, string $few, string $many): string

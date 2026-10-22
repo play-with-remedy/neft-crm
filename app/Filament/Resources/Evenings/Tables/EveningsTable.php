@@ -2,8 +2,11 @@
 
 namespace App\Filament\Resources\Evenings\Tables;
 
+use App\Filament\Resources\Evenings\Actions\EveningLockActions;
 use App\Models\Evening;
+use App\Services\EveningLockService;
 use App\Support\EveningCsvExporter;
+use App\Support\FilamentAccess;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -23,6 +26,12 @@ class EveningsTable
                 TextColumn::make('played_at')
                     ->label('Дата')
                     ->date('d.m.Y')
+                    ->icon(fn (Evening $record): ?string => app(EveningLockService::class)->isLocked($record)
+                        ? 'heroicon-s-lock-closed'
+                        : null)
+                    ->iconPosition('after')
+                    ->iconColor('warning')
+                    ->tooltip(fn (Evening $record): ?string => app(EveningLockService::class)->description($record))
                     ->alignCenter()
                     ->sortable(),
 
@@ -106,10 +115,47 @@ class EveningsTable
             ->recordActions([
                 ViewAction::make()->label('Детали'),
                 EditAction::make()->label('Изменить'),
+                Action::make('editPlaceholder')
+                    ->label('Изменить')
+                    ->icon('heroicon-o-pencil-square')
+                    ->link()
+                    ->disabled()
+                    ->extraAttributes([
+                        'style' => 'visibility: hidden;',
+                    ])
+                    ->visible(fn (Evening $record): bool => ! FilamentAccess::isSuperAdmin()
+                        && app(EveningLockService::class)->isLocked($record)),
+                EveningLockActions::lock(iconOnly: true),
+                EveningLockActions::unlock(iconOnly: true),
+                Action::make('lockPlaceholder')
+                    ->label('Место для блокировки')
+                    ->icon('heroicon-m-lock-closed')
+                    ->iconButton()
+                    ->size('sm')
+                    ->disabled()
+                    ->extraAttributes([
+                        'style' => 'visibility: hidden;',
+                    ])
+                    ->visible(fn (Evening $record): bool => ! FilamentAccess::isSuperAdmin()
+                        || (app(EveningLockService::class)->isLocked($record) && blank($record->locked_at))),
                 Action::make('export')
                     ->label('Экспорт')
                     ->icon('heroicon-o-arrow-down-tray')
+                    ->iconButton()
+                    ->size('sm')
+                    ->tooltip('Экспорт вечера')
+                    ->authorize(fn (): bool => FilamentAccess::isSuperAdmin())
                     ->action(fn (Evening $record) => EveningCsvExporter::download($record)),
+                Action::make('exportPlaceholder')
+                    ->label('Место для экспорта')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->iconButton()
+                    ->size('sm')
+                    ->disabled()
+                    ->extraAttributes([
+                        'style' => 'visibility: hidden;',
+                    ])
+                    ->visible(fn (): bool => ! FilamentAccess::isSuperAdmin()),
             ]);
     }
 }

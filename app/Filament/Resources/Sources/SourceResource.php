@@ -7,7 +7,7 @@ use App\Filament\Resources\Sources\Schemas\SourceForm;
 use App\Filament\Resources\Sources\Tables\SourcesTable;
 use App\Models\Source;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

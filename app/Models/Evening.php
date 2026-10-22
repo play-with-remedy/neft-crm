@@ -13,11 +13,15 @@ class Evening extends Model
         'evening_type_id',
         'project_id',
         'other_expenses',
+        'locked_at',
+        'locked_by_user_id',
+        'lock_reason',
     ];
 
     protected $casts = [
         'played_at' => 'datetime',
         'other_expenses' => 'integer',
+        'locked_at' => 'datetime',
     ];
 
     public function eveningType(): BelongsTo
@@ -43,6 +47,11 @@ class Evening extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(EveningExpense::class);
+    }
+
+    public function lockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'locked_by_user_id');
     }
 
     public function getTotalPaidAmountAttribute(): int

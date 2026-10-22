@@ -7,7 +7,7 @@ use App\Filament\Resources\EveningTypes\Schemas\EveningTypeForm;
 use App\Filament\Resources\EveningTypes\Tables\EveningTypesTable;
 use App\Models\EveningType;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

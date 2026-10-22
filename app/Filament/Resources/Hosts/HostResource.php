@@ -7,7 +7,7 @@ use App\Filament\Resources\Hosts\Schemas\HostForm;
 use App\Filament\Resources\Hosts\Tables\HostsTable;
 use App\Models\Host;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

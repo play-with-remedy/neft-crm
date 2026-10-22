@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Players\Pages;
 
 use App\Enums\AutumnCaseStatus;
 use App\Filament\Resources\Players\PlayerResource;
+use App\Support\FilamentAccess;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -35,6 +36,7 @@ class PlayerAutumnCase extends ViewRecord
                 ->label('Статистика')
                 ->icon('heroicon-o-chart-bar')
                 ->color('primary')
+                ->authorize(fn (): bool => FilamentAccess::isSuperAdmin())
                 ->url(fn (): string => PlayerResource::getUrl('statistics', ['record' => $this->record])),
         ];
     }

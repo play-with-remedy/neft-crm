@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Players\Pages;
 
 use App\Filament\Pages\ImportPlayers;
 use App\Filament\Resources\Players\PlayerResource;
+use App\Support\FilamentAccess;
 use App\Support\PlayerCsvExporter;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -12,6 +13,8 @@ use Filament\Resources\Pages\ListRecords;
 class ListPlayers extends ListRecords
 {
     protected static string $resource = PlayerResource::class;
+
+    protected string $view = 'filament.resources.players.pages.list-players';
 
     protected static ?string $title = 'Игроки';
 
@@ -24,12 +27,14 @@ class ListPlayers extends ListRecords
                 ->label('Импорт CSV')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('gray')
+                ->authorize(fn (): bool => FilamentAccess::isSuperAdmin())
                 ->url(ImportPlayers::getUrl()),
 
             Action::make('export')
                 ->label('Экспорт CSV')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
+                ->authorize(fn (): bool => FilamentAccess::isSuperAdmin())
                 ->action(fn () => PlayerCsvExporter::downloadAll()),
 
             CreateAction::make()

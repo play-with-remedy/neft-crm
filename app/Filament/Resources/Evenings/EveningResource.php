@@ -11,7 +11,7 @@ use App\Filament\Resources\Evenings\Schemas\EveningInfolist;
 use App\Filament\Resources\Evenings\Tables\EveningsTable;
 use App\Models\Evening;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

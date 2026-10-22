@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Evening;
 use App\Models\EveningParticipant;
+use App\Policies\EveningPolicy;
 use App\Services\AutumnCaseService;
+use App\Services\EveningLockService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(EveningLockService::class);
     }
 
     /**
@@ -21,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Evening::class, EveningPolicy::class);
+
         EveningParticipant::created(function (EveningParticipant $participation): void {
             app(AutumnCaseService::class)->processParticipation($participation);
         });

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Players\Pages;
 
 use App\Filament\Resources\Players\PlayerResource;
+use App\Support\FilamentAccess;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -19,6 +20,7 @@ class ViewPlayer extends ViewRecord
                 ->label('Статистика')
                 ->icon('heroicon-o-chart-bar')
                 ->color('primary')
+                ->authorize(fn (): bool => FilamentAccess::isSuperAdmin())
                 ->url(fn (): string => PlayerResource::getUrl('statistics', ['record' => $this->record])),
 
             Action::make('autumn_case')

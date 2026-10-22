@@ -4,12 +4,18 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Evenings\EveningResource;
 use App\Models\Evening;
+use App\Support\FilamentAccess;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 
 class LatestEvenings extends TableWidget
 {
+    public static function canView(): bool
+    {
+        return FilamentAccess::isSuperAdmin();
+    }
+
     protected static bool $isLazy = false;
 
     protected static ?int $sort = 3;

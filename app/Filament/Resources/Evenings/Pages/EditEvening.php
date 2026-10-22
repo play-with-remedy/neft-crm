@@ -22,7 +22,11 @@ class EditEvening extends EditRecord
                 ->modalHeading('Удаление вечера')
                 ->modalDescription('Вы уверены, что хотите удалить вечер?')
                 ->modalSubmitActionLabel('Удалить')
-                ->modalCancelActionLabel('Отмена'),
+                ->modalCancelActionLabel('Отмена')
+                ->modalFooterActions(fn (DeleteAction $action): array => [
+                    $action->getModalSubmitAction(),
+                    $action->getModalCancelAction(),
+                ]),
         ];
     }
 

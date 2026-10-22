@@ -7,7 +7,7 @@ use App\Filament\Resources\PaymentTypes\Schemas\PaymentTypeForm;
 use App\Filament\Resources\PaymentTypes\Tables\PaymentTypesTable;
 use App\Models\PaymentType;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

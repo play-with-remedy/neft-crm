@@ -37,6 +37,7 @@ php artisan key:generate
 ```bash
 php artisan migrate
 php artisan db:seed
+php artisan app:create-superadmin
 npm install
 npm run build
 ```
@@ -53,7 +54,7 @@ composer run dev
 http://localhost:8000/admin
 ```
 
-> Важно: текущий `UserSeeder` содержит тестовые учётные записи. Не запускайте полный `db:seed` на production, пока тестовые пользователи и пароли не удалены из сидера.
+`db:seed` заполняет только справочники и не создаёт учётные записи. Команда `app:create-superadmin` используется один раз и запрашивает пароль скрытым вводом. Email нужен как уникальный логин; его подтверждение не требуется.
 
 ## Настройка базы данных
 
@@ -137,6 +138,15 @@ npm run build
 php artisan migrate --force
 php artisan optimize
 ```
+
+При первом развёртывании на production один раз заполните справочники и создайте первого суперадмина:
+
+```bash
+php artisan db:seed --force
+php artisan app:create-superadmin
+```
+
+Не добавляйте `app:create-superadmin` в команды каждого деплоя: после создания первого суперадмина команда завершится с ошибкой и никого не перезапишет.
 
 Production-конфигурация должна содержать:
 

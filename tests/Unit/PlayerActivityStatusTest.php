@@ -41,4 +41,14 @@ class PlayerActivityStatusTest extends TestCase
 
         $this->assertSame('Игрок сезона', $player->resolveActivityStatusLabel(20));
     }
+
+    public function test_funnel_status_uses_the_shared_visit_thresholds(): void
+    {
+        $this->assertSame('none', Player::funnelStatusKey(0));
+        $this->assertSame('new', Player::funnelStatusKey(1));
+        $this->assertSame('contender', Player::funnelStatusKey(5));
+        $this->assertSame('active', Player::funnelStatusKey(10));
+        $this->assertSame('regular', Player::funnelStatusKey(21));
+        $this->assertSame('Постоянный', Player::funnelStatusLabel('regular'));
+    }
 }

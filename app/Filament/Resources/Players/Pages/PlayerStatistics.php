@@ -6,6 +6,7 @@ use App\Filament\Resources\Players\PlayerResource;
 use App\Filament\Widgets\PlayerActivityChart;
 use App\Filament\Widgets\PlayerStatsOverview;
 use App\Filament\Widgets\PlayerVisitHistory;
+use App\Support\FilamentAccess;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
@@ -15,6 +16,11 @@ class PlayerStatistics extends ViewRecord
     protected static string $resource = PlayerResource::class;
 
     protected static ?string $breadcrumb = 'Статистика';
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return FilamentAccess::isSuperAdmin() && parent::canAccess($parameters);
+    }
 
     public function getTitle(): string
     {

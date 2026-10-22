@@ -3,11 +3,17 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Player;
+use App\Support\FilamentAccess;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class PlayerActivityChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return FilamentAccess::isSuperAdmin();
+    }
+
     protected static bool $isLazy = false;
 
     protected int | string | array $columnSpan = 'full';

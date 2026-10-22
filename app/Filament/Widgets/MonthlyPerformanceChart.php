@@ -3,10 +3,16 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Evening;
+use App\Support\FilamentAccess;
 use Filament\Widgets\ChartWidget;
 
 class MonthlyPerformanceChart extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return FilamentAccess::isSuperAdmin();
+    }
+
     protected static bool $isLazy = false;
 
     protected static ?int $sort = 2;

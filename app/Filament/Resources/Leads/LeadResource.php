@@ -7,7 +7,7 @@ use App\Filament\Resources\Leads\Schemas\LeadForm;
 use App\Filament\Resources\Leads\Tables\LeadsTable;
 use App\Models\Lead;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;

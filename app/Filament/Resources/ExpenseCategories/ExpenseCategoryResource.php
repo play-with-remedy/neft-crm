@@ -7,7 +7,7 @@ use App\Filament\Resources\ExpenseCategories\Schemas\ExpenseCategoryForm;
 use App\Filament\Resources\ExpenseCategories\Tables\ExpenseCategoriesTable;
 use App\Models\ExpenseCategory;
 use BackedEnum;
-use Filament\Resources\Resource;
+use App\Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
