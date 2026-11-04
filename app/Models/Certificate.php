@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Certificate extends Model
 {
@@ -16,14 +17,15 @@ class Certificate extends Model
         'type',
         'player_id',
         'purchaser_nickname',
-        'used_at',
+        'seller_host_id',
+        'expires_at',
     ];
 
     protected function casts(): array
     {
         return [
             'purchased_at' => 'date',
-            'used_at' => 'date',
+            'expires_at' => 'date',
         ];
     }
 
@@ -38,6 +40,16 @@ class Certificate extends Model
     public function purchaser(): BelongsTo
     {
         return $this->belongsTo(Player::class, 'player_id');
+    }
+
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Host::class, 'seller_host_id');
+    }
+
+    public function usages(): HasMany
+    {
+        return $this->hasMany(CertificateUsage::class)->orderBy('used_at')->orderBy('id');
     }
 
     protected static function booted(): void

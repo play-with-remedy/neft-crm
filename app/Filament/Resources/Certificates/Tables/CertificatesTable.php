@@ -33,9 +33,22 @@ class CertificatesTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('used_at')
-                    ->label('Дата использования')
+                TextColumn::make('seller.nickname')
+                    ->label('Кто продал')
+                    ->placeholder('Не указан')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('expires_at')
+                    ->label('Действует до')
                     ->date('d.m.Y')
+                    ->placeholder('Не указан')
+                    ->sortable(),
+
+                TextColumn::make('usages.used_at')
+                    ->label('Даты использования')
+                    ->date('d.m.Y')
+                    ->listWithLineBreaks()
                     ->placeholder('Не использован')
                     ->sortable(),
             ])
