@@ -189,4 +189,14 @@ class EveningLockTest extends TestCase
         Livewire::test(ListEvenings::class)
             ->assertActionHidden('lock_periods');
     }
+
+    public function test_period_management_is_linked_from_evenings_but_not_registered_in_navigation(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));
+
+        $this->assertFalse(EveningLockPeriodResource::shouldRegisterNavigation());
+
+        Livewire::test(ListEvenings::class)
+            ->assertActionVisible('lock_periods');
+    }
 }
