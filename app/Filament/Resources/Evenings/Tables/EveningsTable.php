@@ -47,34 +47,34 @@ class EveningsTable
 
                 TextColumn::make('participants_sum_paid_amount')
                     ->label('Оплата')
-                    ->numeric(decimalPlaces: 0)
+                    ->numeric(decimalPlaces: 2)
                     ->suffix(' BYN')
                     ->alignCenter()
                     ->sum('participants', 'paid_amount'),
 
                 TextColumn::make('staff_sum_salary')
                     ->label('ЗП Команды')
-                    ->numeric(decimalPlaces: 0)
+                    ->numeric(decimalPlaces: 2)
                     ->suffix(' BYN')
                     ->alignCenter()
                     ->sum('staff', 'salary'),
 
                 TextColumn::make('expenses_sum_amount')
                     ->label('Расходы')
-                    ->numeric(decimalPlaces: 0)
+                    ->numeric(decimalPlaces: 2)
                     ->suffix(' BYN')
                     ->alignCenter()
                     ->sum('expenses', 'amount'),
 
                 TextColumn::make('profit')
                     ->label('Выручка')
-                    ->numeric(decimalPlaces: 0)
+                    ->numeric(decimalPlaces: 2)
                     ->alignCenter()
                     ->suffix(' BYN')
                     ->state(function ($record) {
-                        $participants = (int) $record->participants_sum_paid_amount;
-                        $staff = (int) $record->staff_sum_salary;
-                        $expenses = (int) $record->expenses_sum_amount;
+                        $participants = (float) $record->participants_sum_paid_amount;
+                        $staff = (float) $record->staff_sum_salary;
+                        $expenses = (float) $record->expenses_sum_amount;
 
                         return $participants - $staff - $expenses;
                     }),

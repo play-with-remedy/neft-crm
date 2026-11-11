@@ -39,7 +39,7 @@ class PlayerStatsOverview extends StatsOverviewWidget
                 ->icon('heroicon-o-calendar-days')
                 ->color('info'),
 
-            Stat::make('Всего оплачено', $this->money((int) ($summary?->paid_total ?? 0)))
+            Stat::make('Всего оплачено', $this->money((float) ($summary?->paid_total ?? 0)))
                 ->description('за все посещения')
                 ->icon('heroicon-o-banknotes')
                 ->color('primary'),
@@ -56,9 +56,9 @@ class PlayerStatsOverview extends StatsOverviewWidget
         ];
     }
 
-    private function money(int $amount): string
+    private function money(float $amount): string
     {
-        return number_format($amount, 0, ',', ' ') . ' BYN';
+        return number_format($amount, 2, ',', ' ') . ' BYN';
     }
 
     private function date($date): string

@@ -71,28 +71,32 @@ class FinancialReportsTest extends TestCase
 
         $february = Evening::create([
             'played_at' => '2026-02-01 00:00:00',
-            'other_expenses' => 10,
+            'other_expenses' => 10.10,
         ]);
-        $february->participants()->createMany([
+        $februaryParticipants = $february->participants()->createMany([
             [
                 'player_id' => $februaryPlayer->id,
                 'payment_type_id' => $cash->id,
-                'paid_amount' => 200,
+                'paid_amount' => 200.15,
             ],
             [
                 'player_id' => $secondFebruaryPlayer->id,
                 'payment_type_id' => $card->id,
-                'paid_amount' => 50,
+                'paid_amount' => 50.10,
             ],
+        ]);
+        $februaryParticipants->first()->payments()->create([
+            'payment_type_id' => $card->id,
+            'amount' => 30.25,
         ]);
         $february->staff()->create([
             'host_id' => $host->id,
             'role' => 'host',
-            'salary' => 40,
+            'salary' => 40.05,
         ]);
         $february->expenses()->create([
             'expense_category_id' => $expenseCategory->id,
-            'amount' => 30,
+            'amount' => 30.20,
         ]);
 
         $component = Livewire::test(CashBook::class)
@@ -107,12 +111,12 @@ class FinancialReportsTest extends TestCase
         $totals = $component->instance()->getTotals();
         $paymentTotals = collect($totals['payment_types'])->keyBy('label');
 
-        $this->assertSame(250, $totals['revenue']);
-        $this->assertSame(40, $totals['expenses']);
-        $this->assertSame(40, $totals['staff_salary']);
-        $this->assertSame(170, $totals['profit']);
-        $this->assertSame(200, $paymentTotals['Наличные']['value']);
-        $this->assertSame(50, $paymentTotals['Карта']['value']);
+        $this->assertEqualsWithDelta(280.50, $totals['revenue'], 0.001);
+        $this->assertEqualsWithDelta(40.30, $totals['expenses'], 0.001);
+        $this->assertEqualsWithDelta(40.05, $totals['staff_salary'], 0.001);
+        $this->assertEqualsWithDelta(200.15, $totals['profit'], 0.001);
+        $this->assertEqualsWithDelta(200.15, $paymentTotals['Наличные']['value'], 0.001);
+        $this->assertEqualsWithDelta(80.35, $paymentTotals['Карта']['value'], 0.001);
     }
 
     public function test_monthly_finances_calculates_rows_and_revenue_change(): void
@@ -301,7 +305,7 @@ class FinancialReportsTest extends TestCase
         $this->assertStringContainsString('10.02.2026', $modal);
         $this->assertStringContainsString('20.02.2026', $modal);
         $this->assertStringNotContainsString('20.01.2026', $modal);
-        $this->assertStringContainsString('150 BYN', $modal);
+        $this->assertStringContainsString('150,00 BYN', $modal);
     }
 
     public function test_staff_salary_evenings_modal_paginates_by_five_evenings(): void

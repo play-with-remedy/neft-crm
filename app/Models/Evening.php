@@ -20,7 +20,7 @@ class Evening extends Model
 
     protected $casts = [
         'played_at' => 'datetime',
-        'other_expenses' => 'integer',
+        'other_expenses' => 'decimal:2',
         'locked_at' => 'datetime',
     ];
 
@@ -54,22 +54,22 @@ class Evening extends Model
         return $this->belongsTo(User::class, 'locked_by_user_id');
     }
 
-    public function getTotalPaidAmountAttribute(): int
+    public function getTotalPaidAmountAttribute(): float
     {
-        return (int) $this->participants()->sum('paid_amount');
+        return (float) $this->participants()->sum('paid_amount');
     }
 
-    public function getStaffSalaryTotalAttribute(): int
+    public function getStaffSalaryTotalAttribute(): float
     {
-        return (int) $this->staff()->sum('salary');
+        return (float) $this->staff()->sum('salary');
     }
 
-    public function getExpensesTotalAttribute(): int
+    public function getExpensesTotalAttribute(): float
     {
-        return (int) $this->expenses()->sum('amount');
+        return (float) $this->expenses()->sum('amount');
     }
 
-    public function getProfitAttribute(): int
+    public function getProfitAttribute(): float
     {
         return $this->total_paid_amount
             - $this->expenses_total
@@ -94,9 +94,10 @@ class Evening extends Model
             ->get()
             ->map(fn (PaymentType $type) => [
                 'name' => $type->type,
-                'amount' => (int) $this->participants()
+                'amount' => (float) EveningParticipantPayment::query()
                     ->where('payment_type_id', $type->id)
-                    ->sum('paid_amount'),
+                    ->whereHas('participant', fn ($query) => $query->where('evening_id', $this->getKey()))
+                    ->sum('amount'),
             ])
             ->toArray();
     }

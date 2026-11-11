@@ -61,7 +61,7 @@
         </div>
         <div class="salary-details__stat salary-details__stat--accent">
             <div class="salary-details__stat-label">Начислено</div>
-            <div class="salary-details__stat-value">{{ number_format($totalSalary, 0, ',', ' ') }} BYN</div>
+            <div class="salary-details__stat-value">{{ number_format((float) $totalSalary, 2, ',', ' ') }} BYN</div>
         </div>
     </div>
 
@@ -77,7 +77,7 @@
                     <div class="salary-details__cell salary-details__cell--type">{{ $evening->eveningType?->name ?? 'Вечер без типа' }}</div>
                     <div class="salary-details__cell salary-details__cell--project">{{ $evening->project?->name ?? 'Без проекта' }}</div>
                     <div class="salary-details__cell salary-details__cell--role">{{ $evening->staff->pluck('role')->unique()->map(fn ($role) => $roleLabels[$role] ?? $role)->join(', ') }}</div>
-                    <div class="salary-details__amount">{{ number_format((int) $evening->staff->sum('salary'), 0, ',', ' ') }} BYN</div>
+                    <div class="salary-details__amount">{{ number_format((float) $evening->staff->sum('salary'), 2, ',', ' ') }} BYN</div>
                 </article>
             @endforeach
         </div>

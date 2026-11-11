@@ -55,19 +55,19 @@ class LatestEvenings extends TableWidget
 
                 TextColumn::make('participants_sum_paid_amount')
                     ->label('Выручка')
-                    ->formatStateUsing(fn ($state): string => number_format((int) $state, 0, ',', ' ') . ' BYN')
+                    ->formatStateUsing(fn ($state): string => number_format((float) $state, 2, ',', ' ') . ' BYN')
                     ->alignEnd(),
 
                 TextColumn::make('dashboard_profit')
                     ->label('Прибыль')
                     ->state(
-                        fn (Evening $record): int => (int) $record->participants_sum_paid_amount
-                            - (int) $record->staff_sum_salary
-                            - (int) $record->expenses_sum_amount
-                            - (int) $record->other_expenses
+                        fn (Evening $record): float => (float) $record->participants_sum_paid_amount
+                            - (float) $record->staff_sum_salary
+                            - (float) $record->expenses_sum_amount
+                            - (float) $record->other_expenses
                     )
-                    ->formatStateUsing(fn ($state): string => number_format((int) $state, 0, ',', ' ') . ' BYN')
-                    ->color(fn ($state): string => (int) $state < 0 ? 'danger' : 'success')
+                    ->formatStateUsing(fn ($state): string => number_format((float) $state, 2, ',', ' ') . ' BYN')
+                    ->color(fn ($state): string => (float) $state < 0 ? 'danger' : 'success')
                     ->weight('bold')
                     ->alignEnd(),
             ])

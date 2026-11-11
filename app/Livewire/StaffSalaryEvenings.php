@@ -77,7 +77,7 @@ class StaffSalaryEvenings extends Component
         return view('livewire.staff-salary-evenings', [
             'evenings' => $evenings,
             'eveningsCount' => (int) $totals->evenings_count,
-            'totalSalary' => (int) $totals->total_salary,
+            'totalSalary' => (float) $totals->total_salary,
             'roleLabels' => [
                 'host' => 'Ведущий',
                 'admin' => 'Админ',

@@ -17,7 +17,7 @@ class EveningStaff extends Model
     ];
 
     protected $casts = [
-        'salary' => 'integer',
+        'salary' => 'decimal:2',
     ];
 
     public function evening(): BelongsTo

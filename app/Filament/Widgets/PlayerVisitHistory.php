@@ -36,7 +36,7 @@ class PlayerVisitHistory extends TableWidget
                     ->with([
                         'evening.project',
                         'evening.eveningType',
-                        'paymentType',
+                        'payments.paymentType',
                     ])
             )
             ->columns([
@@ -56,14 +56,14 @@ class PlayerVisitHistory extends TableWidget
 
                 TextColumn::make('paid_amount')
                     ->label('Оплачено')
-                    ->formatStateUsing(fn ($state): string => number_format((int) $state, 0, ',', ' ') . ' BYN')
+                    ->formatStateUsing(fn ($state): string => number_format((float) $state, 2, ',', ' ') . ' BYN')
                     ->weight('bold')
                     ->color('primary')
                     ->alignEnd(),
 
-                TextColumn::make('paymentType.type')
-                    ->label('Тип оплаты')
-                    ->badge()
+                TextColumn::make('payment_summary')
+                    ->label('Оплаты')
+                    ->wrap()
                     ->placeholder('—'),
             ])
             ->recordUrl(

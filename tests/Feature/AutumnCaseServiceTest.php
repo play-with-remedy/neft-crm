@@ -141,6 +141,32 @@ class AutumnCaseServiceTest extends TestCase
         $this->assertSame(1, AutumnCase::query()->sole()->participations()->count());
     }
 
+    public function test_split_payment_uses_the_total_amount_for_case_progress(): void
+    {
+        $card = PaymentType::query()->create(['type' => 'Card']);
+        $evening = Evening::query()->create(['played_at' => '2026-09-01']);
+        $participation = EveningParticipant::query()->create([
+            'evening_id' => $evening->getKey(),
+            'player_id' => $this->player->getKey(),
+            'is_new_player' => false,
+        ]);
+
+        $participation->payments()->create([
+            'payment_type_id' => $this->paymentType->getKey(),
+            'amount' => 10,
+        ]);
+
+        $this->assertNull($participation->fresh()->autumn_case_id);
+
+        $participation->payments()->create([
+            'payment_type_id' => $card->getKey(),
+            'amount' => 20,
+        ]);
+
+        $this->assertSame('30.00', $participation->fresh()->paid_amount);
+        $this->assertSame(1, $participation->fresh()->autumn_case_visit_number);
+    }
+
     public function test_repair_command_removes_legacy_free_visit_and_empty_case(): void
     {
         $freeVisit = $this->visit('2026-09-01', 0);

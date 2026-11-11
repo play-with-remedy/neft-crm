@@ -421,15 +421,22 @@ class ImportEvenings extends Page implements HasForms
             return 0;
         }
 
-        $evening->participants()->create([
-            'player_id' => $player->id,
-            'payment_type_id' => $paymentType->id,
-            'paid_amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null),
-            'is_new_player' => $this->bool($rowData[self::HEADERS['is_new_player']] ?? null),
-            'note' => $this->nullableString($rowData[self::HEADERS['note']] ?? null),
-        ]);
+        $participant = $evening->participants()->firstOrCreate(
+            ['player_id' => $player->id],
+            [
+                'payment_type_id' => $paymentType->id,
+                'paid_amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null),
+                'is_new_player' => $this->bool($rowData[self::HEADERS['is_new_player']] ?? null),
+                'note' => $this->nullableString($rowData[self::HEADERS['note']] ?? null),
+            ],
+        );
 
-        return 1;
+        $participant->payments()->updateOrCreate(
+            ['payment_type_id' => $paymentType->id],
+            ['amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null)],
+        );
+
+        return $participant->wasRecentlyCreated ? 1 : 0;
     }
 
     private function importExpense(Evening $evening, array $rowData, int &$skipped, array &$skippedList): int

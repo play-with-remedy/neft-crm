@@ -55,7 +55,7 @@ class PlayerAutumnCase extends ViewRecord
                             ->with([
                                 'campaign',
                                 'participations' => fn ($query) => $query
-                                    ->with(['evening', 'paymentType'])
+                                    ->with(['evening', 'payments.paymentType'])
                                     ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
                                     ->orderByDesc('evening_participants.is_autumn_reward')
                                     ->orderByDesc('evening_participants.autumn_case_visit_number')
@@ -116,8 +116,9 @@ class PlayerAutumnCase extends ViewRecord
                                                     ? 'success'
                                                     : 'info'),
 
-                                            TextEntry::make('paymentType.type')
-                                                ->label('Тип оплаты')
+                                            TextEntry::make('payment_summary')
+                                                ->label('Оплаты')
+                                                ->wrap()
                                                 ->placeholder('—'),
 
                                             TextEntry::make('paid_amount')

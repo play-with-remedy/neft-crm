@@ -47,7 +47,7 @@ class PlayerActivityChart extends ChartWidget
                     'type' => 'bar',
                     'label' => 'Оплачено, BYN',
                     'data' => $months
-                        ->map(fn (Carbon $month): int => (int) ($participations?->get($month->format('Y-m'))?->sum('paid_amount') ?? 0))
+                        ->map(fn (Carbon $month): float => (float) ($participations?->get($month->format('Y-m'))?->sum('paid_amount') ?? 0))
                         ->all(),
                     'backgroundColor' => 'rgba(245, 158, 11, 0.72)',
                     'borderColor' => '#f59e0b',

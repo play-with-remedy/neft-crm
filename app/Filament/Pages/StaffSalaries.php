@@ -132,7 +132,7 @@ class StaffSalaries extends Page implements HasTable
         return TextColumn::make($name)
             ->label($label)
             ->formatStateUsing(
-                fn ($state): string => number_format((int) $state, 0, ',', ' ').' BYN'
+                fn ($state): string => number_format((float) $state, 2, ',', ' ').' BYN'
             )
             ->description(
                 function (Host $record) use ($countName): string {

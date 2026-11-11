@@ -85,27 +85,27 @@ class ClubStatsOverview extends StatsOverviewWidget
             ->get();
     }
 
-    private function revenue(Collection $evenings): int
+    private function revenue(Collection $evenings): float
     {
-        return (int) $evenings->sum('participants_sum_paid_amount');
+        return (float) $evenings->sum('participants_sum_paid_amount');
     }
 
-    private function profit(Collection $evenings): int
+    private function profit(Collection $evenings): float
     {
-        return (int) $evenings->sum(
-            fn (Evening $evening): int => (int) $evening->participants_sum_paid_amount
-                - (int) $evening->staff_sum_salary
-                - (int) $evening->expenses_sum_amount
-                - (int) $evening->other_expenses
+        return (float) $evenings->sum(
+            fn (Evening $evening): float => (float) $evening->participants_sum_paid_amount
+                - (float) $evening->staff_sum_salary
+                - (float) $evening->expenses_sum_amount
+                - (float) $evening->other_expenses
         );
     }
 
-    private function money(int $amount): string
+    private function money(float $amount): string
     {
-        return number_format($amount, 0, ',', ' ') . ' BYN';
+        return number_format($amount, 2, ',', ' ') . ' BYN';
     }
 
-    private function comparison(int $current, int $previous): string
+    private function comparison(float $current, float $previous): string
     {
         if ($previous === 0) {
             return $current === 0 ? 'Нет данных за месяц' : 'Первые данные за период';
@@ -116,12 +116,12 @@ class ClubStatsOverview extends StatsOverviewWidget
         return abs($change) . '% к прошлому месяцу';
     }
 
-    private function comparisonColor(int $current, int $previous): string
+    private function comparisonColor(float $current, float $previous): string
     {
         return $current >= $previous ? 'success' : 'danger';
     }
 
-    private function comparisonIcon(int $current, int $previous): string
+    private function comparisonIcon(float $current, float $previous): string
     {
         return $current >= $previous
             ? 'heroicon-m-arrow-trending-up'

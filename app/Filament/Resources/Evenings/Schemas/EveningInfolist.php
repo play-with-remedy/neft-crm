@@ -34,18 +34,22 @@ class EveningInfolist
                     ->schema([
                         TextEntry::make('total_paid_amount')
                             ->label('Выручка')
+                            ->numeric(decimalPlaces: 2)
                             ->suffix(' BYN'),
 
                         TextEntry::make('staff_salary_total')
                             ->label('Зарплаты команды')
+                            ->numeric(decimalPlaces: 2)
                             ->suffix(' BYN'),
 
                         TextEntry::make('expenses_total')
                             ->label('Расходы')
+                            ->numeric(decimalPlaces: 2)
                             ->suffix(' BYN'),
 
                         TextEntry::make('profit')
                             ->label('Прибыль')
+                            ->numeric(decimalPlaces: 2)
                             ->suffix(' BYN'),
 
                         TextEntry::make('players_count')
@@ -68,6 +72,7 @@ class EveningInfolist
 
                                 TextEntry::make('amount')
                                     ->label('Сумма')
+                                    ->numeric(decimalPlaces: 2)
                                     ->suffix(' BYN'),
                             ])
                             ->columns(2),
@@ -96,6 +101,7 @@ class EveningInfolist
 
                                 TextEntry::make('salary')
                                     ->label('Зарплата')
+                                    ->numeric(decimalPlaces: 2)
                                     ->suffix(' BYN'),
                             ])
                             ->columns(3),
@@ -114,6 +120,7 @@ class EveningInfolist
 
                                 TextEntry::make('amount')
                                     ->label('Сумма')
+                                    ->numeric(decimalPlaces: 2)
                                     ->suffix(' BYN'),
                             ])
                             ->columns(2),
@@ -127,7 +134,7 @@ class EveningInfolist
                         RepeatableEntry::make('participants')
                             ->hiddenLabel()
                             ->getStateUsing(fn ($record) => $record->participants()
-                                ->with(['player', 'paymentType'])
+                            ->with(['player', 'payments.paymentType'])
                                 ->leftJoin('players', 'players.id', '=', 'evening_participants.player_id')
                                 ->orderByDesc('evening_participants.paid_amount')
                                 ->orderBy('players.nickname')
@@ -137,11 +144,13 @@ class EveningInfolist
                                 TextEntry::make('player.nickname')
                                     ->label('Игрок'),
 
-                                TextEntry::make('paymentType.type')
-                                    ->label('Тип оплаты'),
+                                TextEntry::make('payment_summary')
+                                    ->label('Оплаты')
+                                    ->wrap(),
 
                                 TextEntry::make('paid_amount')
                                     ->label('Оплата')
+                                    ->numeric(decimalPlaces: 2)
                                     ->suffix(' BYN'),
 
                                 TextEntry::make('is_new_player')

@@ -45,7 +45,7 @@ class CashBook extends Page implements HasTable
                     ->with([
                         'eveningType',
                         'project',
-                        'participants.paymentType',
+                        'participants.payments.paymentType',
                         'staff.host',
                         'expenses.category',
                     ])
@@ -82,24 +82,30 @@ class CashBook extends Page implements HasTable
 
                 TextColumn::make('revenue')
                     ->label('Выручка')
-                    ->state(fn (Evening $record): int => (int) $record->participants->sum('paid_amount')),
+                    ->numeric(decimalPlaces: 2)
+                    ->suffix(' BYN')
+                    ->state(fn (Evening $record): float => (float) $record->participants->sum('paid_amount')),
 
                 TextColumn::make('profit')
                     ->label('Прибыль')
-                    ->state(function (Evening $record): int {
-                        $revenue = (int) $record->participants->sum('paid_amount');
-                        $expenses = (int) $record->expenses->sum('amount');
-                        $staffSalary = (int) $record->staff->sum('salary');
-                        $otherExpenses = (int) $record->other_expenses;
+                    ->numeric(decimalPlaces: 2)
+                    ->suffix(' BYN')
+                    ->state(function (Evening $record): float {
+                        $revenue = (float) $record->participants->sum('paid_amount');
+                        $expenses = (float) $record->expenses->sum('amount');
+                        $staffSalary = (float) $record->staff->sum('salary');
+                        $otherExpenses = (float) $record->other_expenses;
 
                         return $revenue - $expenses - $staffSalary - $otherExpenses;
                     }),
 
                 TextColumn::make('expenses')
                     ->label('Расходы')
-                    ->state(function (Evening $record): int {
-                        return (int) $record->expenses->sum('amount')
-                            + (int) $record->other_expenses;
+                    ->numeric(decimalPlaces: 2)
+                    ->suffix(' BYN')
+                    ->state(function (Evening $record): float {
+                        return (float) $record->expenses->sum('amount')
+                            + (float) $record->other_expenses;
                     }),
 
                 ...$this->paymentTypeColumns(),
@@ -175,45 +181,47 @@ class CashBook extends Page implements HasTable
     {
         $records = $this->getFilteredTableQuery()
             ->with([
-                'participants.paymentType',
+                'participants.payments.paymentType',
                 'staff.host',
                 'expenses.category',
             ])
             ->get();
 
-        $revenue = 0;
+        $revenue = 0.0;
         $paymentTypes = PaymentType::query()->orderBy('id')->get();
         $paymentTypeTotals = $paymentTypes
             ->mapWithKeys(fn (PaymentType $paymentType): array => [
                 $paymentType->id => [
                     'label' => $paymentType->type,
-                    'value' => 0,
+                    'value' => 0.0,
                 ],
             ])
             ->all();
-        $prizeFund = 0;
-        $expenses = 0;
-        $staffSalary = 0;
+        $prizeFund = 0.0;
+        $expenses = 0.0;
+        $staffSalary = 0.0;
 
         foreach ($records as $evening) {
-            $revenue += (int) $evening->participants->sum('paid_amount');
+            $revenue += (float) $evening->participants->sum('paid_amount');
 
             foreach ($evening->participants as $participant) {
-                $paymentTypeId = (int) $participant->payment_type_id;
+                foreach ($participant->payments as $payment) {
+                    $paymentTypeId = (int) $payment->payment_type_id;
 
-                if (isset($paymentTypeTotals[$paymentTypeId])) {
-                    $paymentTypeTotals[$paymentTypeId]['value'] += (int) $participant->paid_amount;
+                    if (isset($paymentTypeTotals[$paymentTypeId])) {
+                        $paymentTypeTotals[$paymentTypeId]['value'] += (float) $payment->amount;
+                    }
                 }
             }
 
-            $prizeFund += (int) $evening->expenses
+            $prizeFund += (float) $evening->expenses
                 ->filter(fn ($expense) => $expense->category?->name === 'Призовые')
                 ->sum('amount');
 
-            $expenses += (int) $evening->expenses->sum('amount')
-                + (int) $evening->other_expenses;
+            $expenses += (float) $evening->expenses->sum('amount')
+                + (float) $evening->other_expenses;
 
-            $staffSalary += (int) $evening->staff->sum('salary');
+            $staffSalary += (float) $evening->staff->sum('salary');
         }
 
         return [
@@ -236,9 +244,12 @@ class CashBook extends Page implements HasTable
 
                 return TextColumn::make("payment_type_{$paymentTypeId}")
                     ->label($paymentType->type)
-                    ->state(fn (Evening $record): int => (int) $record->participants
+                    ->numeric(decimalPlaces: 2)
+                    ->suffix(' BYN')
+                    ->state(fn (Evening $record): float => (float) $record->participants
+                        ->flatMap->payments
                         ->where('payment_type_id', $paymentTypeId)
-                        ->sum('paid_amount'))
+                        ->sum('amount'))
                     ->alignCenter();
             })
             ->all();

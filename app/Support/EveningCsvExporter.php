@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Evening;
+use App\Models\EveningParticipant;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +17,7 @@ class EveningCsvExporter
         'expenses.category',
         'staff.host',
         'participants.player',
-        'participants.paymentType',
+        'participants.payments.paymentType',
     ];
 
     public static function downloadAll(): StreamedResponse
@@ -107,22 +108,29 @@ class EveningCsvExporter
         }
 
         foreach ($evening->participants as $participant) {
-            fputcsv($handle, [
-                $evening->id,
-                self::formatDateTime($evening->played_at),
-                $evening->eveningType?->name,
-                $evening->project?->name,
-                'Игрок',
-                $participant->player?->nickname,
-                '',
-                '',
-                '',
-                '',
-                $participant->paymentType?->type,
-                $participant->paid_amount,
-                $participant->is_new_player ? 'Да' : 'Нет',
-                $participant->note,
-            ], ';');
+            $payments = $participant->payments;
+
+            if ($payments->isEmpty()) {
+                self::writeParticipant(
+                    $handle,
+                    $evening,
+                    $participant,
+                    $participant->paymentType?->type,
+                    $participant->paid_amount,
+                );
+
+                continue;
+            }
+
+            foreach ($payments as $payment) {
+                self::writeParticipant(
+                    $handle,
+                    $evening,
+                    $participant,
+                    $payment->paymentType?->type,
+                    $payment->amount,
+                );
+            }
         }
 
         foreach ($evening->expenses as $expense) {
@@ -143,6 +151,32 @@ class EveningCsvExporter
                 '',
             ], ';');
         }
+    }
+
+    private static function writeParticipant(
+        $handle,
+        Evening $evening,
+        EveningParticipant $participant,
+        ?string $paymentType,
+        mixed $amount,
+    ): void
+    {
+        fputcsv($handle, [
+            $evening->id,
+            self::formatDateTime($evening->played_at),
+            $evening->eveningType?->name,
+            $evening->project?->name,
+            'Игрок',
+            $participant->player?->nickname,
+            '',
+            '',
+            '',
+            '',
+            $paymentType,
+            $amount,
+            $participant->is_new_player ? 'Да' : 'Нет',
+            $participant->note,
+        ], ';');
     }
 
     private static function formatDateTime($date): string

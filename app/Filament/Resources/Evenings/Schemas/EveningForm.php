@@ -88,6 +88,7 @@ class EveningForm
                                 TextInput::make('amount')
                                     ->hiddenLabel()
                                     ->numeric()
+                                    ->step(0.01)
                                     ->minValue(0)
                                     ->maxValue(9999999999.99)
                                     ->default(0)
@@ -132,6 +133,7 @@ class EveningForm
                                 TextInput::make('salary')
                                     ->hiddenLabel()
                                     ->numeric()
+                                    ->step(0.01)
                                     ->minValue(0)
                                     ->maxValue(2147483647)
                                     ->default(0)
@@ -185,6 +187,7 @@ class EveningForm
                                 TextInput::make('participants_batch_paid_amount')
                                     ->label('Сумма оплаты')
                                     ->numeric()
+                                    ->step(0.01)
                                     ->minValue(0)
                                     ->default(0)
                                     ->afterStateHydrated(fn (TextInput $component, $state, Get $get) => blank($state) || self::isFreePaymentType($get('participants_batch_payment_type_id'))
@@ -216,8 +219,10 @@ class EveningForm
                                             for ($index = 0; $index < $count; $index++) {
                                                 $participants[Str::uuid()->toString()] = [
                                                     'player_id' => null,
-                                                    'payment_type_id' => $paymentTypeId,
-                                                    'paid_amount' => $paidAmount,
+                                                    'payments' => [[
+                                                        'payment_type_id' => $paymentTypeId,
+                                                        'amount' => $paidAmount,
+                                                    ]],
                                                     'is_new_player' => false,
                                                     'note' => null,
                                                 ];
@@ -245,7 +250,8 @@ class EveningForm
                                     ->label('Общая сумма взносов')
                                     ->content(function (Get $get): string {
                                         $total = collect($get('participants') ?? [])
-                                            ->sum(fn (array $participant): float => (float) ($participant['paid_amount'] ?? 0));
+                                            ->sum(fn (array $participant): float => collect($participant['payments'] ?? [])
+                                                ->sum(fn (array $payment): float => (float) ($payment['amount'] ?? 0)));
 
                                         return number_format($total, 2, ',', ' ').' BYN';
                                     }),
@@ -257,8 +263,7 @@ class EveningForm
                                     ->table([
                                         TableColumn::make('#')->width('60px'),
                                         TableColumn::make('Игрок'),
-                                        TableColumn::make('Тип оплаты')->width('180px'),
-                                        TableColumn::make('Оплата')->width('140px'),
+                                        TableColumn::make('Оплаты')->width('360px'),
                                         TableColumn::make('Новый')->width('100px'),
                                         TableColumn::make('Примечание'),
                                     ])
@@ -295,38 +300,48 @@ class EveningForm
                                             ])
                                             ->required(),
 
-                                        Select::make('payment_type_id')
+                                        Repeater::make('payments')
+                                            ->relationship()
                                             ->hiddenLabel()
-                                            ->relationship('paymentType', 'type')
-                                            ->default(fn (): ?int => PaymentType::query()
-                                                ->where('type', 'Наличные')
-                                                ->value('id'))
-                                            ->selectablePlaceholder(false)
-                                            ->preload()
-                                            ->afterStateUpdated(function ($state, Set $set): void {
-                                                if (self::isFreePaymentType($state)) {
-                                                    $set('paid_amount', 0);
-                                                }
-                                            })
-                                            ->afterStateUpdatedJs(self::resetAmountForFreePaymentJs('paid_amount'))
-                                            ->required(),
+                                            ->schema([
+                                                Select::make('payment_type_id')
+                                                    ->hiddenLabel()
+                                                    ->relationship('paymentType', 'type')
+                                                    ->default(fn (): ?int => self::defaultPaymentTypeId())
+                                                    ->selectablePlaceholder(false)
+                                                    ->preload()
+                                                    ->distinct()
+                                                    ->afterStateUpdated(function ($state, Set $set): void {
+                                                        if (self::isFreePaymentType($state)) {
+                                                            $set('amount', 0);
+                                                        }
+                                                    })
+                                                    ->afterStateUpdatedJs(self::resetAmountForFreePaymentJs('amount'))
+                                                    ->required(),
 
-                                        TextInput::make('paid_amount')
-                                            ->hiddenLabel()
-                                            ->numeric()
-                                            ->minValue(0)
-                                            ->maxValue(99999999.99)
-                                            ->default(0)
-                                            ->afterStateHydrated(function (TextInput $component, $state, Get $get): void {
-                                                if (self::isFreePaymentType($get('payment_type_id'))) {
-                                                    $component->state(0);
-                                                }
-                                            })
-                                            ->disabled(fn (Get $get): bool => self::isFreePaymentType($get('payment_type_id')))
-                                            ->extraAlpineAttributes(self::disableAmountForFreePaymentAttributes('payment_type_id'))
-                                            ->dehydrated()
-                                            ->live(debounce: 400)
-                                            ->required(),
+                                                TextInput::make('amount')
+                                                    ->hiddenLabel()
+                                                    ->numeric()
+                                                    ->step(0.01)
+                                                    ->minValue(0)
+                                                    ->maxValue(99999999.99)
+                                                    ->default(0)
+                                                    ->afterStateHydrated(function (TextInput $component, $state, Get $get): void {
+                                                        if (self::isFreePaymentType($get('payment_type_id'))) {
+                                                            $component->state(0);
+                                                        }
+                                                    })
+                                                    ->disabled(fn (Get $get): bool => self::isFreePaymentType($get('payment_type_id')))
+                                                    ->extraAlpineAttributes(self::disableAmountForFreePaymentAttributes('payment_type_id'))
+                                                    ->dehydrated()
+                                                    ->live(debounce: 400)
+                                                    ->required(),
+                                            ])
+                                            ->columns(2)
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->compact()
+                                            ->addActionLabel('Ещё способ'),
 
                                         Toggle::make('is_new_player')
                                             ->hiddenLabel()

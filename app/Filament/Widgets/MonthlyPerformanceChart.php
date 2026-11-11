@@ -43,7 +43,7 @@ class MonthlyPerformanceChart extends ChartWidget
                 [
                     'label' => 'Выручка',
                     'data' => $evenings->map(
-                        fn ($items): int => (int) $items->sum('participants_sum_paid_amount')
+                        fn ($items): float => (float) $items->sum('participants_sum_paid_amount')
                     )->values()->all(),
                     'borderColor' => '#f59e0b',
                     'backgroundColor' => 'rgba(245, 158, 11, 0.12)',
@@ -53,10 +53,10 @@ class MonthlyPerformanceChart extends ChartWidget
                 [
                     'label' => 'Расходы',
                     'data' => $evenings->map(
-                        fn ($items): int => (int) $items->sum(
-                            fn (Evening $evening): int => (int) $evening->staff_sum_salary
-                                + (int) $evening->expenses_sum_amount
-                                + (int) $evening->other_expenses
+                        fn ($items): float => (float) $items->sum(
+                            fn (Evening $evening): float => (float) $evening->staff_sum_salary
+                                + (float) $evening->expenses_sum_amount
+                                + (float) $evening->other_expenses
                         )
                     )->values()->all(),
                     'borderColor' => '#ef4444',
