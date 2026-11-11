@@ -303,6 +303,10 @@ class EveningForm
                                         Repeater::make('payments')
                                             ->relationship()
                                             ->hiddenLabel()
+                                            ->table([
+                                                TableColumn::make('Способ оплаты'),
+                                                TableColumn::make('Сумма')->width('130px'),
+                                            ])
                                             ->schema([
                                                 Select::make('payment_type_id')
                                                     ->hiddenLabel()
@@ -337,11 +341,11 @@ class EveningForm
                                                     ->live(debounce: 400)
                                                     ->required(),
                                             ])
-                                            ->columns(2)
                                             ->defaultItems(1)
                                             ->minItems(1)
+                                            ->reorderable(false)
                                             ->compact()
-                                            ->addActionLabel('Ещё способ'),
+                                            ->addActionLabel('Добавить способ'),
 
                                         Toggle::make('is_new_player')
                                             ->hiddenLabel()
