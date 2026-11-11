@@ -204,6 +204,14 @@ class FilamentAccessControlTest extends TestCase
             ->assertActionVisible('export');
     }
 
+    public function test_club_stats_handle_a_month_without_previous_financial_data(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));
+
+        Livewire::test(ClubStatsOverview::class)
+            ->assertSee('Нет данных за месяц');
+    }
+
     public function test_superadmin_can_create_a_restricted_admin_account(): void
     {
         $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));

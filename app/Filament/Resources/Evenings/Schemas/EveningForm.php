@@ -260,12 +260,13 @@ class EveningForm
                                     ->relationship()
                                     ->defaultItems(0)
                                     ->hiddenLabel()
+                                    ->extraAttributes(['class' => 'fi-evening-participants-repeater'])
                                     ->table([
-                                        TableColumn::make('#')->width('60px'),
-                                        TableColumn::make('Игрок'),
-                                        TableColumn::make('Оплаты')->width('360px'),
-                                        TableColumn::make('Новый')->width('100px'),
-                                        TableColumn::make('Примечание'),
+                                        TableColumn::make('#')->width('50px'),
+                                        TableColumn::make('Игрок')->width('180px'),
+                                        TableColumn::make('Оплаты')->width('350px'),
+                                        TableColumn::make('Новый')->width('70px')->alignCenter(),
+                                        TableColumn::make('Примечание')->width('250px'),
                                     ])
                                     ->schema([
                                         Placeholder::make('row_number')
@@ -303,9 +304,14 @@ class EveningForm
                                         Repeater::make('payments')
                                             ->relationship()
                                             ->hiddenLabel()
+                                            ->extraAttributes(['class' => 'fi-evening-payment-repeater'])
                                             ->table([
-                                                TableColumn::make('Способ оплаты'),
-                                                TableColumn::make('Сумма')->width('130px'),
+                                                TableColumn::make('Способ оплаты')
+                                                    ->hiddenHeaderLabel()
+                                                    ->width('125px'),
+                                                TableColumn::make('Сумма')
+                                                    ->hiddenHeaderLabel()
+                                                    ->width('90px'),
                                             ])
                                             ->schema([
                                                 Select::make('payment_type_id')
@@ -343,13 +349,38 @@ class EveningForm
                                             ])
                                             ->defaultItems(1)
                                             ->minItems(1)
+                                            ->addable(false)
                                             ->reorderable(false)
                                             ->compact()
-                                            ->addActionLabel('Добавить способ'),
+                                            ->extraItemActions([
+                                                Action::make('add_payment')
+                                                    ->label('Добавить способ оплаты')
+                                                    ->icon('heroicon-m-plus')
+                                                    ->color('primary')
+                                                    ->tooltip('Добавить способ оплаты')
+                                                    ->action(function (Repeater $component): void {
+                                                        $payments = $component->getRawState();
+                                                        $payments[Str::uuid()->toString()] = [
+                                                            'payment_type_id' => self::nextPaymentTypeId($payments),
+                                                            'amount' => 0,
+                                                        ];
+
+                                                        $component->rawState($payments);
+                                                        $component->callAfterStateUpdated();
+                                                    }),
+                                            ])
+                                            ->deleteAction(fn (Action $action): Action => $action
+                                                ->disabled(fn (Repeater $component): bool => count($component->getRawState()) <= 1)
+                                                ->color(fn (Repeater $component): string => count($component->getRawState()) <= 1
+                                                    ? 'gray'
+                                                    : 'danger')
+                                                ->tooltip('Удалить способ оплаты')),
 
                                         Toggle::make('is_new_player')
                                             ->hiddenLabel()
                                             ->default(false)
+                                            ->extraFieldWrapperAttributes(['class' => 'fi-evening-new-player-field'])
+                                            ->extraAttributes(['class' => 'fi-evening-new-player-toggle'])
                                             ->inline(false),
 
                                         Textarea::make('note')
@@ -377,6 +408,20 @@ class EveningForm
         return PaymentType::query()
             ->where('type', 'Наличные')
             ->value('id') ?? PaymentType::query()->orderBy('id')->value('id');
+    }
+
+    private static function nextPaymentTypeId(array $payments): ?int
+    {
+        $usedPaymentTypeIds = collect($payments)
+            ->pluck('payment_type_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return PaymentType::query()
+            ->whereNotIn('id', $usedPaymentTypeIds)
+            ->orderBy('id')
+            ->value('id') ?? self::defaultPaymentTypeId();
     }
 
     private static function isFreePaymentType(mixed $paymentTypeId): bool

@@ -107,8 +107,8 @@ class ClubStatsOverview extends StatsOverviewWidget
 
     private function comparison(float $current, float $previous): string
     {
-        if ($previous === 0) {
-            return $current === 0 ? 'Нет данных за месяц' : 'Первые данные за период';
+        if ($previous === 0.0) {
+            return $current === 0.0 ? 'Нет данных за месяц' : 'Первые данные за период';
         }
 
         $change = (int) round((($current - $previous) / abs($previous)) * 100);

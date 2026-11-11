@@ -172,4 +172,53 @@ class EveningFormTest extends TestCase
 
         $this->assertCount(0, $evening->fresh()->participants);
     }
+
+    public function test_payment_row_actions_add_rows_and_disable_deleting_the_last_one(): void
+    {
+        $cash = PaymentType::create(['type' => 'Cash']);
+        $card = PaymentType::create(['type' => 'Card']);
+        $player = Player::create(['nickname' => 'Player']);
+        $evening = Evening::create(['played_at' => '2026-09-08 19:00:00']);
+
+        $component = Livewire::test(EditEvening::class, ['record' => $evening->getRouteKey()])
+            ->fillForm([
+                'participants' => [[
+                    'player_id' => $player->id,
+                    'payments' => [[
+                        'payment_type_id' => $cash->id,
+                        'amount' => 10,
+                    ]],
+                    'is_new_player' => false,
+                ]],
+            ]);
+
+        $participantKey = array_key_first($component->get('data.participants'));
+        $paymentsPath = "participants.{$participantKey}.payments";
+        $paymentKey = array_key_first($component->get("data.{$paymentsPath}"));
+
+        $component
+            ->assertFormComponentActionVisible($paymentsPath, 'add_payment', ['item' => $paymentKey])
+            ->assertFormComponentActionVisible($paymentsPath, 'delete', ['item' => $paymentKey])
+            ->assertFormComponentActionDisabled($paymentsPath, 'delete', ['item' => $paymentKey])
+            ->callFormComponentAction($paymentsPath, 'add_payment', arguments: ['item' => $paymentKey])
+            ->assertCount("data.{$paymentsPath}", 2)
+            ->assertSet("data.{$paymentsPath}", fn (array $payments): bool => collect($payments)
+                ->contains(fn (array $payment): bool => (int) $payment['payment_type_id'] === $card->id));
+
+        $paymentKey = array_key_first($component->get("data.{$paymentsPath}"));
+
+        $component
+            ->assertFormComponentActionVisible($paymentsPath, 'delete', ['item' => $paymentKey])
+            ->assertFormComponentActionEnabled($paymentsPath, 'delete', ['item' => $paymentKey])
+            ->callFormComponentAction($paymentsPath, 'delete', arguments: ['item' => $paymentKey])
+            ->assertCount("data.{$paymentsPath}", 1);
+
+        $remainingPaymentKey = array_key_first($component->get("data.{$paymentsPath}"));
+
+        $component->assertFormComponentActionDisabled(
+            $paymentsPath,
+            'delete',
+            ['item' => $remainingPaymentKey],
+        );
+    }
 }
