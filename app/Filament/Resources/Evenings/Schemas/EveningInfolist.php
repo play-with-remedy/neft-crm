@@ -55,9 +55,6 @@ class EveningInfolist
                         TextEntry::make('players_count')
                             ->label('Всего игроков'),
 
-                        TextEntry::make('new_players_count')
-                            ->label('Новички'),
-
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
@@ -153,15 +150,11 @@ class EveningInfolist
                                     ->numeric(decimalPlaces: 2)
                                     ->suffix(' BYN'),
 
-                                TextEntry::make('is_new_player')
-                                    ->label('Тип игрока')
-                                    ->formatStateUsing(fn ($state) => $state ? 'Новый' : 'Обычный'),
-
                                 TextEntry::make('note')
                                     ->label('Примечание')
                                     ->placeholder('—'),
                             ])
-                            ->columns(5),
+                            ->columns(4),
                     ])
                     ->collapsible()
                     ->collapsed()

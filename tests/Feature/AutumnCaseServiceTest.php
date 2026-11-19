@@ -148,7 +148,6 @@ class AutumnCaseServiceTest extends TestCase
         $participation = EveningParticipant::query()->create([
             'evening_id' => $evening->getKey(),
             'player_id' => $this->player->getKey(),
-            'is_new_player' => false,
         ]);
 
         $participation->payments()->create([
@@ -291,7 +290,6 @@ class AutumnCaseServiceTest extends TestCase
             'player_id' => $this->player->getKey(),
             'payment_type_id' => $this->paymentType->getKey(),
             'paid_amount' => $amount,
-            'is_new_player' => false,
         ]);
     }
 }

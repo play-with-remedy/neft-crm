@@ -12,7 +12,6 @@ use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
@@ -223,7 +222,6 @@ class EveningForm
                                                         'payment_type_id' => $paymentTypeId,
                                                         'amount' => $paidAmount,
                                                     ]],
-                                                    'is_new_player' => false,
                                                     'note' => null,
                                                 ];
                                             }
@@ -265,7 +263,6 @@ class EveningForm
                                         TableColumn::make('#')->width('50px'),
                                         TableColumn::make('Игрок')->width('180px'),
                                         TableColumn::make('Оплаты')->width('350px'),
-                                        TableColumn::make('Новый')->width('70px')->alignCenter(),
                                         TableColumn::make('Примечание')->width('250px'),
                                     ])
                                     ->schema([
@@ -375,13 +372,6 @@ class EveningForm
                                                     ? 'gray'
                                                     : 'danger')
                                                 ->tooltip('Удалить способ оплаты')),
-
-                                        Toggle::make('is_new_player')
-                                            ->hiddenLabel()
-                                            ->default(false)
-                                            ->extraFieldWrapperAttributes(['class' => 'fi-evening-new-player-field'])
-                                            ->extraAttributes(['class' => 'fi-evening-new-player-toggle'])
-                                            ->inline(false),
 
                                         Textarea::make('note')
                                             ->hiddenLabel()

@@ -54,7 +54,6 @@ class ImportEvenings extends Page implements HasForms
         'expense_amount' => 'Сумма расхода',
         'payment_type' => 'Тип оплаты',
         'paid_amount' => 'Сумма оплаты',
-        'is_new_player' => 'Новый игрок',
         'note' => 'Примечание',
     ];
 
@@ -426,7 +425,6 @@ class ImportEvenings extends Page implements HasForms
             [
                 'payment_type_id' => $paymentType->id,
                 'paid_amount' => $this->money($rowData[self::HEADERS['paid_amount']] ?? null),
-                'is_new_player' => $this->bool($rowData[self::HEADERS['is_new_player']] ?? null),
                 'note' => $this->nullableString($rowData[self::HEADERS['note']] ?? null),
             ],
         );
@@ -554,16 +552,6 @@ class ImportEvenings extends Page implements HasForms
             (string) $eveningId,
             "неизвестный тип записи ({$recordType})"
         );
-    }
-
-    private function bool(?string $value): bool
-    {
-        $value = mb_strtolower(trim((string) $value));
-
-        return match ($value) {
-            'да', 'yes', 'true', '1', 'полная', 'новый' => true,
-            default => false,
-        };
     }
 
     private function money(?string $value): float

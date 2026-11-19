@@ -39,7 +39,6 @@ class ClubStatsOverview extends StatsOverviewWidget
         $profit = $this->profit($current);
         $previousProfit = $this->profit($previous);
         $participants = (int) $current->sum('participants_count');
-        $newPlayers = (int) $current->sum('new_players_count');
 
         return [
             Stat::make('Выручка', $this->money($revenue))
@@ -63,8 +62,6 @@ class ClubStatsOverview extends StatsOverviewWidget
                 ->color('info'),
 
             Stat::make('Посещений игроков', (string) $participants)
-                ->description($newPlayers > 0 ? "Новых игроков: {$newPlayers}" : 'Новых игроков пока нет')
-                ->descriptionIcon('heroicon-o-user-plus')
                 ->icon('heroicon-o-user-group')
                 ->url(PlayerResource::getUrl())
                 ->color('warning'),
@@ -79,9 +76,6 @@ class ClubStatsOverview extends StatsOverviewWidget
             ->withSum('staff', 'salary')
             ->withSum('expenses', 'amount')
             ->withCount('participants')
-            ->withCount([
-                'participants as new_players_count' => fn ($query) => $query->where('is_new_player', true),
-            ])
             ->get();
     }
 

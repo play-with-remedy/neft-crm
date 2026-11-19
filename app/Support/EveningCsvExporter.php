@@ -75,7 +75,6 @@ class EveningCsvExporter
             'Сумма расхода',
             'Тип оплаты',
             'Сумма оплаты',
-            'Новый игрок',
             'Примечание',
         ], ';');
     }
@@ -98,7 +97,6 @@ class EveningCsvExporter
                     default => $staff->role,
                 },
                 $staff->salary,
-                '',
                 '',
                 '',
                 '',
@@ -148,7 +146,6 @@ class EveningCsvExporter
                 '',
                 '',
                 '',
-                '',
             ], ';');
         }
     }
@@ -174,7 +171,6 @@ class EveningCsvExporter
             '',
             $paymentType,
             $amount,
-            $participant->is_new_player ? 'Да' : 'Нет',
             $participant->note,
         ], ';');
     }

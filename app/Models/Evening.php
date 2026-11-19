@@ -81,13 +81,6 @@ class Evening extends Model
         return $this->participants()->count();
     }
 
-    public function getNewPlayersCountAttribute(): int
-    {
-        return $this->participants()
-            ->where('is_new_player', true)
-            ->count();
-    }
-
     public function getPaymentsByTypeAttribute(): array
     {
         return PaymentType::query()

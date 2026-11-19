@@ -130,7 +130,6 @@ class EveningFormTest extends TestCase
                         'payment_type_id' => $cardPaymentType->id,
                         'amount' => 30,
                     ]],
-                    'is_new_player' => false,
                     'note' => null,
                 ]],
             ])
@@ -164,7 +163,6 @@ class EveningFormTest extends TestCase
                         'payment_type_id' => $paymentType->id,
                         'amount' => 20,
                     ]],
-                    'is_new_player' => false,
                 ]],
             ])
             ->call('save')
@@ -188,7 +186,6 @@ class EveningFormTest extends TestCase
                         'payment_type_id' => $cash->id,
                         'amount' => 10,
                     ]],
-                    'is_new_player' => false,
                 ]],
             ]);
 
