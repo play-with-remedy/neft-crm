@@ -32,11 +32,12 @@ class TelegramBot
         return $response->json('result');
     }
 
-    public function sendMessage(int $chatId, string $text): void
+    public function sendMessage(int $chatId, string $text, array $replyMarkup = []): void
     {
         $this->request('sendMessage', [
             'chat_id' => $chatId,
             'text' => $text,
+            ...($replyMarkup !== [] ? ['reply_markup' => $replyMarkup] : []),
         ]);
     }
 }

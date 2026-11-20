@@ -38,7 +38,7 @@ class SetupTelegramBot extends Command
             ]);
             $bot->request('setMyCommands', [
                 'commands' => [
-                    ['command' => 'start', 'description' => 'Проверить игровой ник'],
+                    ['command' => 'start', 'description' => 'Открыть меню клуба'],
                     ['command' => 'help', 'description' => 'Как пользоваться ботом'],
                 ],
             ]);
