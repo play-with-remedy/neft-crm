@@ -45,11 +45,6 @@ class Schedule extends Page implements HasTable
         app()->setLocale('ru');
     }
 
-    public function getSubheading(): ?string
-    {
-        return 'Игры клуба.';
-    }
-
     protected function getHeaderActions(): array
     {
         return [
