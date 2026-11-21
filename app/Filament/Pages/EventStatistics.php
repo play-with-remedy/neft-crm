@@ -201,7 +201,7 @@ class EventStatistics extends Page
         $start = Carbon::createFromFormat('!Y-m', $month)->startOfMonth();
         $end = $start->copy()->addMonth();
 
-        $eveningsByType = Evening::query()
+        $eveningsByType = Evening::query()->occurred()
             ->where('played_at', '>=', $start)
             ->where('played_at', '<', $end)
             ->groupBy('evening_type_id')
@@ -212,7 +212,7 @@ class EventStatistics extends Page
             ->whereNotNull('evening_type_id')
             ->pluck('evenings_count', 'evening_type_id');
 
-        $participantStats = EveningParticipant::query()
+        $participantStats = EveningParticipant::query()->occurred()
             ->whereHas('evening', fn ($query) => $query
                 ->where('played_at', '>=', $start)
                 ->where('played_at', '<', $end))
@@ -234,7 +234,7 @@ class EventStatistics extends Page
             'revenue' => (float) ($participantStats?->revenue ?? 0),
         ];
 
-        $statsByTypeId = EveningParticipant::query()
+        $statsByTypeId = EveningParticipant::query()->occurred()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
             ->where('evenings.played_at', '>=', $start)
             ->where('evenings.played_at', '<', $end)

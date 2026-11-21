@@ -30,7 +30,7 @@ class LatestEvenings extends TableWidget
             ->heading('Последние вечера')
             ->description('Краткий итог последних событий клуба')
             ->query(
-                Evening::query()
+                Evening::query()->occurred()
                     ->with(['project', 'eveningType'])
                     ->withSum('participants', 'paid_amount')
                     ->withSum('staff', 'salary')

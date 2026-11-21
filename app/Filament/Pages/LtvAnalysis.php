@@ -152,7 +152,7 @@ class LtvAnalysis extends Page
         $from = Carbon::createFromFormat('!Y-m', $this->periodFrom)->startOfMonth();
         $until = Carbon::createFromFormat('!Y-m', $this->periodUntil)->startOfMonth()->addMonth();
 
-        $participationStats = EveningParticipant::query()
+        $participationStats = EveningParticipant::query()->occurred()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
             ->groupBy('evening_participants.player_id')
             ->selectRaw('evening_participants.player_id')

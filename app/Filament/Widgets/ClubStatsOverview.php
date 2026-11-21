@@ -70,7 +70,7 @@ class ClubStatsOverview extends StatsOverviewWidget
 
     private function eveningsForMonth($from, $until): Collection
     {
-        return Evening::query()
+        return Evening::query()->occurred()
             ->whereBetween('played_at', [$from, $until])
             ->withSum('participants', 'paid_amount')
             ->withSum('staff', 'salary')

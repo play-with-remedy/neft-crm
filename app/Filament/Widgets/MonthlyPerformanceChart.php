@@ -29,7 +29,7 @@ class MonthlyPerformanceChart extends ChartWidget
 
     protected function getData(): array
     {
-        $evenings = Evening::query()
+        $evenings = Evening::query()->occurred()
             ->whereBetween('played_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->withSum('participants', 'paid_amount')
             ->withSum('staff', 'salary')

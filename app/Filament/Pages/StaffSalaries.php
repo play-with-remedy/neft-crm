@@ -208,7 +208,7 @@ class StaffSalaries extends Page implements HasTable
     {
         [$periodFrom, $periodUntil] = $this->activePeriod();
 
-        return EveningStaff::query()
+        return EveningStaff::query()->whereHas('evening', fn ($query) => $query->occurred())
             ->join('evenings', 'evenings.id', '=', 'evening_staff.evening_id')
             ->select('evening_staff.host_id')
             ->selectRaw("SUM(CASE WHEN evening_staff.role = 'host' THEN evening_staff.salary ELSE 0 END) AS host_salary")

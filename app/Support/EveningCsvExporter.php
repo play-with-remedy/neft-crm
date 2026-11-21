@@ -76,13 +76,23 @@ class EveningCsvExporter
             'Тип оплаты',
             'Сумма оплаты',
             'Примечание',
+            'Адрес',
+            'Стоимость',
         ], ';');
     }
 
     private static function writeEvening($handle, Evening $evening): void
     {
+        if ($evening->staff->isEmpty() && $evening->participants->isEmpty() && $evening->expenses->isEmpty()) {
+            self::writeRow($handle, $evening, [
+                $evening->id, self::formatDateTime($evening->played_at),
+                $evening->eveningType?->name, $evening->project?->name, 'Вечер',
+                '', '', '', '', '', '', '', '',
+            ]);
+        }
+
         foreach ($evening->staff as $staff) {
-            fputcsv($handle, [
+            self::writeRow($handle, $evening, [
                 $evening->id,
                 self::formatDateTime($evening->played_at),
                 $evening->eveningType?->name,
@@ -102,7 +112,7 @@ class EveningCsvExporter
                 '',
                 '',
                 '',
-            ], ';');
+            ]);
         }
 
         foreach ($evening->participants as $participant) {
@@ -132,7 +142,7 @@ class EveningCsvExporter
         }
 
         foreach ($evening->expenses as $expense) {
-            fputcsv($handle, [
+            self::writeRow($handle, $evening, [
                 $evening->id,
                 self::formatDateTime($evening->played_at),
                 $evening->eveningType?->name,
@@ -146,7 +156,7 @@ class EveningCsvExporter
                 '',
                 '',
                 '',
-            ], ';');
+            ]);
         }
     }
 
@@ -158,7 +168,7 @@ class EveningCsvExporter
         mixed $amount,
     ): void
     {
-        fputcsv($handle, [
+        self::writeRow($handle, $evening, [
             $evening->id,
             self::formatDateTime($evening->played_at),
             $evening->eveningType?->name,
@@ -172,7 +182,12 @@ class EveningCsvExporter
             $paymentType,
             $amount,
             $participant->note,
-        ], ';');
+        ]);
+    }
+
+    private static function writeRow($handle, Evening $evening, array $row): void
+    {
+        fputcsv($handle, [...$row, $evening->address, $evening->price], ';');
     }
 
     private static function formatDateTime($date): string

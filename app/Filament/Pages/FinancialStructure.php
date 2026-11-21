@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\FinancialCategory;
+use App\Models\Evening;
 use App\Models\FinancialPeriodValue;
 use Illuminate\Database\Eloquent\Collection;
 use UnitEnum;
@@ -387,6 +388,7 @@ class FinancialStructure extends Page
                 '<',
                 $periodEnd
             )
+            ->where('evenings.played_at', '<=', Evening::clubNow()->format('Y-m-d H:i:s'))
             ->sum('evening_staff.salary');
     }
 
@@ -418,9 +420,11 @@ class FinancialStructure extends Page
                 '<',
                 $periodEnd
             )
+            ->where('evenings.played_at', '<=', Evening::clubNow()->format('Y-m-d H:i:s'))
             ->sum('evening_expenses.amount');
 
         $otherExpenses = (float) DB::table('evenings')
+            ->where('played_at', '<=', Evening::clubNow()->format('Y-m-d H:i:s'))
             ->where('played_at', '>=', $periodStart)
             ->where('played_at', '<', $periodEnd)
             ->sum('other_expenses');
@@ -459,6 +463,7 @@ class FinancialStructure extends Page
                 '<',
                 $periodEnd
             )
+            ->where('evenings.played_at', '<=', Evening::clubNow()->format('Y-m-d H:i:s'))
             ->sum('evening_participants.paid_amount');
     }
 

@@ -203,7 +203,7 @@ class MonthlyFinances extends Page
     {
         $start = Carbon::createFromFormat('!Y-m', $period)->startOfMonth();
         $end = $start->copy()->addMonth();
-        $evenings = Evening::query()
+        $evenings = Evening::query()->occurred()
             ->where('played_at', '>=', $start)
             ->where('played_at', '<', $end)
             ->withSum('participants', 'paid_amount')
@@ -299,7 +299,7 @@ class MonthlyFinances extends Page
             ->get(['period', 'corporate_revenue'])
             ->keyBy(fn (FinancialPeriodValue $value): string => $value->period->format('Y-m'));
 
-        $totalsByMonth = Evening::query()
+        $totalsByMonth = Evening::query()->occurred()
             ->whereBetween('played_at', [$comparisonFrom, $until])
             ->withSum('participants', 'paid_amount')
             ->withSum('staff', 'salary')
@@ -422,7 +422,7 @@ class MonthlyFinances extends Page
     private function defaultEndMonth(): Carbon
     {
         $currentMonth = now()->startOfMonth();
-        $latestDate = Evening::query()
+        $latestDate = Evening::query()->occurred()
             ->where('played_at', '<', $currentMonth->copy()->addMonth())
             ->max('played_at');
 

@@ -55,6 +55,8 @@ class ImportEvenings extends Page implements HasForms
         'payment_type' => 'Тип оплаты',
         'paid_amount' => 'Сумма оплаты',
         'note' => 'Примечание',
+        'address' => 'Адрес',
+        'price' => 'Стоимость',
     ];
 
     private const REQUIRED_HEADERS = [
@@ -231,6 +233,14 @@ class ImportEvenings extends Page implements HasForms
                         )?->id,
                     ];
 
+                    if (array_key_exists(self::HEADERS['address'], $firstRow)) {
+                        $eveningData['address'] = $this->nullableString($firstRow[self::HEADERS['address']]);
+                    }
+
+                    if (array_key_exists(self::HEADERS['price'], $firstRow)) {
+                        $eveningData['price'] = $this->schedulePrice($firstRow[self::HEADERS['price']]);
+                    }
+
                     $evening = Evening::query()
                         ->lockForUpdate()
                         ->find((int) $eveningId);
@@ -257,6 +267,7 @@ class ImportEvenings extends Page implements HasForms
                         $recordType = trim($rowData[self::HEADERS['record_type']] ?? '');
 
                         match ($recordType) {
+                            'Вечер' => 0,
                             'Команда' => $eveningStaff += $this->importStaff(
                                 $evening,
                                 $rowData,
@@ -552,6 +563,21 @@ class ImportEvenings extends Page implements HasForms
             (string) $eveningId,
             "неизвестный тип записи ({$recordType})"
         );
+    }
+
+    private function schedulePrice(?string $value): ?float
+    {
+        $value = str_replace(',', '.', trim((string) $value));
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (! is_numeric($value) || (float) $value < 0 || (float) $value > 99999999.99) {
+            throw new \InvalidArgumentException('Некорректная стоимость вечера.');
+        }
+
+        return (float) $value;
     }
 
     private function money(?string $value): float

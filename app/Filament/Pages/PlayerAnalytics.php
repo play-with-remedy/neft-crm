@@ -334,7 +334,7 @@ class PlayerAnalytics extends Page implements HasTable
 
     private function visitDateSubquery(string $aggregate, ?\Closure $visitFilter = null): Builder
     {
-        $query = EveningParticipant::query()
+        $query = EveningParticipant::query()->occurred()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
             ->whereColumn('evening_participants.player_id', 'players.id');
 

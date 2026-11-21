@@ -31,7 +31,7 @@ class PlayerVisitHistory extends TableWidget
             ->heading('История посещений')
             ->description('Все вечера, в которых участвовал игрок')
             ->query(
-                EveningParticipant::query()
+                EveningParticipant::query()->occurred()
                     ->where('player_id', $this->record?->getKey())
                     ->with([
                         'evening.project',

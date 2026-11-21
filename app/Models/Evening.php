@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Evening extends Model
 {
+    public const CLUB_TIMEZONE = 'Europe/Minsk';
+
     protected $fillable = [
         'played_at',
         'evening_type_id',
         'project_id',
+        'address',
+        'price',
         'other_expenses',
         'locked_at',
         'locked_by_user_id',
@@ -21,8 +27,20 @@ class Evening extends Model
     protected $casts = [
         'played_at' => 'datetime',
         'other_expenses' => 'decimal:2',
+        'price' => 'decimal:2',
         'locked_at' => 'datetime',
     ];
+
+    // Evening dates are stored as club-local wall time, including historical dates.
+    public static function clubNow(): Carbon
+    {
+        return now(self::CLUB_TIMEZONE);
+    }
+
+    public function scopeOccurred(Builder $query): Builder
+    {
+        return $query->where('evenings.played_at', '<=', self::clubNow()->format('Y-m-d H:i:s'));
+    }
 
     public function eveningType(): BelongsTo
     {

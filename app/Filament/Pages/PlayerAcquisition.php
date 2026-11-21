@@ -245,7 +245,7 @@ class PlayerAcquisition extends Page
             ->where('first_visit_at', '<', $end->toDateString())
             ->count();
 
-        $paymentsBySource = EveningParticipant::query()
+        $paymentsBySource = EveningParticipant::query()->occurred()
             ->join('players', 'players.id', '=', 'evening_participants.player_id')
             ->where('players.first_visit_at', '>=', $start->toDateString())
             ->where('players.first_visit_at', '<', $end->toDateString())
@@ -338,7 +338,7 @@ class PlayerAcquisition extends Page
     {
         $playerMonthExpression = "DATE_FORMAT(players.first_visit_at, '%Y-%m-01')";
 
-        $participationStats = EveningParticipant::query()
+        $participationStats = EveningParticipant::query()->occurred()
             ->selectRaw('player_id, COUNT(*) AS visits_count, SUM(paid_amount) AS paid_total')
             ->groupBy('player_id');
 

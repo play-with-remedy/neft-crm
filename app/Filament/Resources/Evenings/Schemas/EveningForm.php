@@ -3,9 +3,7 @@
 namespace App\Filament\Resources\Evenings\Schemas;
 
 use App\Models\PaymentType;
-use App\Rules\UnlockedEveningDate;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -33,33 +31,7 @@ class EveningForm
         return $schema
             ->components([
                 Section::make('Основное')
-                    ->schema([
-                        Select::make('project_id')
-                            ->label('Проект')
-                            ->relationship('project', 'name')
-                            ->preload()
-                            ->nullable(),
-
-                        Select::make('evening_type_id')
-                            ->label('Тип вечера')
-                            ->relationship('eveningType', 'name')
-                            ->preload()
-                            ->nullable(),
-
-                        DatePicker::make('played_at')
-                            ->label('Дата проведения')
-                            ->native()
-                            ->minDate('2000-01-01')
-                            ->maxDate(fn (): string => today()->toDateString())
-                            ->rule(new UnlockedEveningDate)
-                            ->required()
-                            ->validationMessages([
-                                'required' => 'Укажите дату проведения.',
-                                'date' => 'Укажите корректную дату.',
-                                'after_or_equal' => 'Дата не может быть раньше 01.01.2000.',
-                                'before_or_equal' => 'Дата не может быть позже сегодняшнего дня.',
-                            ]),
-                    ])
+                    ->schema(EveningDetailsForm::components())
                     ->columns(2)
                     ->columnSpanFull(),
 

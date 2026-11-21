@@ -40,7 +40,7 @@ class StaffSalaryEvenings extends Component
             ->where('host_id', $this->hostId)
             ->when($this->role, fn ($query, string $role) => $query->where('role', $role));
 
-        $evenings = Evening::query()
+        $evenings = Evening::query()->occurred()
             ->with([
                 'eveningType:id,name',
                 'project:id,name',
@@ -58,7 +58,7 @@ class StaffSalaryEvenings extends Component
             ->orderByDesc('played_at')
             ->simplePaginate(5, pageName: 'staffEveningsPage');
 
-        $totals = EveningStaff::query()
+        $totals = EveningStaff::query()->whereHas('evening', fn ($query) => $query->occurred())
             ->where('host_id', $this->hostId)
             ->when($this->role, fn (Builder $query, string $role): Builder => $query->where('role', $role))
             ->whereHas('evening', fn (Builder $query): Builder => $query

@@ -519,6 +519,8 @@ class FinancialReportsTest extends TestCase
 
     public function test_player_analytics_can_filter_by_visit_period_type_and_project(): void
     {
+        $this->travelTo('2026-08-30 12:00:00');
+
         $paymentType = PaymentType::create(['type' => 'Наличные']);
         $wantedType = EveningType::create(['name' => 'Квиз']);
         $otherType = EveningType::create(['name' => 'Мафия']);

@@ -41,7 +41,7 @@ class CashBook extends Page implements HasTable
     {
         return $table
             ->query(
-                Evening::query()
+                Evening::query()->occurred()
                     ->with([
                         'eveningType',
                         'project',

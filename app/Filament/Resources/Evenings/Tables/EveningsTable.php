@@ -24,8 +24,8 @@ class EveningsTable
         return $table
             ->columns([
                 TextColumn::make('played_at')
-                    ->label('Дата')
-                    ->date('d.m.Y')
+                    ->label('Дата и время')
+                    ->dateTime('d.m.Y H:i')
                     ->icon(fn (Evening $record): ?string => app(EveningLockService::class)->isLocked($record)
                         ? 'heroicon-s-lock-closed'
                         : null)

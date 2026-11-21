@@ -54,7 +54,11 @@ class ImportNavigationTest extends TestCase
     public function test_evening_csv_preserves_all_record_types_and_notes_without_new_player_column(): void
     {
         Storage::fake('local');
-        $evening = Evening::create(['played_at' => '2026-09-08 19:00:00']);
+        $evening = Evening::create([
+            'played_at' => '2026-09-08 19:00:00',
+            'address' => 'Минск, ул. Клубная, 1',
+            'price' => 32.50,
+        ]);
         $host = Host::create(['nickname' => 'Host']);
         $player = Player::create(['nickname' => 'Player']);
         $paymentType = PaymentType::create(['type' => 'Cash']);
@@ -107,6 +111,8 @@ class ImportNavigationTest extends TestCase
             ->assertSet('result.skipped', 0);
 
         $evening->refresh();
+        $this->assertSame('Минск, ул. Клубная, 1', $evening->address);
+        $this->assertSame('32.50', $evening->price);
         $this->assertSame('20.15', $evening->staff->sole()->salary);
         $this->assertSame('10.25', $evening->expenses->sole()->amount);
         $participant = $evening->participants->sole();

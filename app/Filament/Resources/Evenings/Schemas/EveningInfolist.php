@@ -24,8 +24,19 @@ class EveningInfolist
                             ->placeholder('Не указан'),
 
                         TextEntry::make('played_at')
-                            ->label('Дата проведения')
-                            ->date('d.m.Y'),
+                            ->label('Дата и время проведения')
+                            ->dateTime('d.m.Y H:i'),
+
+                        TextEntry::make('price')
+                            ->label('Стоимость')
+                            ->numeric(decimalPlaces: 2)
+                            ->suffix(' BYN')
+                            ->placeholder('Не указана'),
+
+                        TextEntry::make('address')
+                            ->label('Адрес')
+                            ->placeholder('Не указан')
+                            ->columnSpanFull(),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),

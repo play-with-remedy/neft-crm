@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,6 +42,11 @@ class EveningParticipant extends Model
     public function evening(): BelongsTo
     {
         return $this->belongsTo(Evening::class);
+    }
+
+    public function scopeOccurred(Builder $query): Builder
+    {
+        return $query->whereHas('evening', fn (Builder $evening): Builder => $evening->occurred());
     }
 
     public function player(): BelongsTo

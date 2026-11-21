@@ -260,7 +260,7 @@ class PlayerFunnel extends Page
     {
         $milestones = [1, 2, 3, 4, 5, 10, 21];
 
-        $rankedVisits = EveningParticipant::query()
+        $rankedVisits = EveningParticipant::query()->occurred()
             ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
             ->join('players', 'players.id', '=', 'evening_participants.player_id')
             ->selectRaw('evening_participants.player_id')
@@ -330,7 +330,7 @@ class PlayerFunnel extends Page
             ],
         };
 
-        $participationCounts = EveningParticipant::query()
+        $participationCounts = EveningParticipant::query()->occurred()
             ->selectRaw('player_id, COUNT(*) AS evenings_count')
             ->groupBy('player_id');
 
