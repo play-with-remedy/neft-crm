@@ -16,21 +16,30 @@ class EveningDetailsForm
                 ->label('Проект')
                 ->relationship('project', 'name')
                 ->preload()
-                ->required($forSchedule),
+                ->required($forSchedule)
+                ->validationMessages([
+                    'required' => 'Выберите проект.',
+                    'exists' => 'Выбранный проект не найден.',
+                ]),
 
             Select::make('evening_type_id')
                 ->label('Тип вечера')
                 ->relationship('eveningType', 'name')
                 ->preload()
-                ->required($forSchedule),
+                ->required($forSchedule)
+                ->validationMessages([
+                    'required' => 'Выберите тип вечера.',
+                    'exists' => 'Выбранный тип вечера не найден.',
+                ]),
 
             DateTimePicker::make('played_at')
                 ->label('Дата и время проведения')
-                ->native()
+                ->native(! $forSchedule)
+                ->locale('ru')
+                ->displayFormat('d.m.Y H:i')
                 ->seconds(false)
                 ->minDate('2000-01-01 00:00:00')
                 ->maxDate('2100-12-31 23:59:59')
-                ->helperText('Время начала по Минску.')
                 ->rule(new UnlockedEveningDate)
                 ->required()
                 ->validationMessages([
@@ -46,12 +55,18 @@ class EveningDetailsForm
                 ->step(0.01)
                 ->minValue(0)
                 ->maxValue(99999999.99)
-                ->suffix('BYN')
+                ->suffix('руб.')
+                ->validationMessages([
+                    'numeric' => 'Укажите стоимость числом.',
+                    'min' => 'Стоимость не может быть отрицательной.',
+                    'max' => 'Стоимость не может превышать 99 999 999,99 руб.',
+                ])
                 ->nullable(),
 
             TextInput::make('address')
                 ->label('Адрес')
                 ->maxLength(500)
+                ->validationMessages(['max' => 'Адрес не должен быть длиннее 500 символов.'])
                 ->columnSpanFull()
                 ->nullable(),
         ];
