@@ -61,7 +61,6 @@ class ScheduleTest extends TestCase
         $evening = Evening::query()->sole();
         $this->assertSame('2026-11-28 19:30:00', $evening->played_at->format('Y-m-d H:i:s'));
         $this->assertSame('30.50', $evening->price);
-        $this->assertNull($evening->address);
         $this->assertSame(['Neft — Manhattan; Neft'], $evening->venue_labels);
         $this->assertCount(0, $evening->participants);
         Livewire::test(ListEvenings::class)->assertCanSeeTableRecords([$evening]);
@@ -89,7 +88,6 @@ class ScheduleTest extends TestCase
             ->callTableAction('edit', $evening, data: [...$this->formDetails(), 'price' => 0])
             ->assertHasNoTableActionErrors();
 
-        $this->assertSame('Минск, ул. Примерная, 1', $evening->fresh()->address);
         $this->assertSame(['Neft — Manhattan; Neft'], $evening->fresh()->venue_labels);
         $this->assertSame('0.00', $evening->fresh()->price);
         $this->assertSame($participant->id, $evening->fresh()->participants->sole()->id);
@@ -157,7 +155,7 @@ class ScheduleTest extends TestCase
         $this->assertCount(1, $future->fresh()->participants);
     }
 
-    public function test_empty_scheduled_evening_round_trips_through_csv_with_time_address_and_price(): void
+    public function test_empty_scheduled_evening_round_trips_through_csv_with_time_and_price(): void
     {
         $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));
         Storage::fake('local');
@@ -182,13 +180,12 @@ class ScheduleTest extends TestCase
         $this->assertSame($evening->id, $imported->id);
         $this->assertSame('19:30', $imported->played_at->format('H:i'));
         $this->assertSame('30.50', $imported->price);
-        $this->assertSame('Минск, ул. Примерная, 1', $imported->address);
+        $this->assertStringNotContainsString(';Адрес;', $csv);
     }
 
     private function formDetails(): array
     {
         $details = $this->details();
-        unset($details['address']);
         $location = Location::query()->where('name', 'Neft')->sole();
 
         return [...$details, 'venues' => [[
@@ -202,7 +199,6 @@ class ScheduleTest extends TestCase
             'played_at' => '2026-11-28 19:30:00',
             'project_id' => $this->project->id,
             'evening_type_id' => $this->type->id,
-            'address' => 'Минск, ул. Примерная, 1',
             'price' => 30.50,
         ];
     }

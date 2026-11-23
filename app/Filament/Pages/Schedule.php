@@ -79,8 +79,7 @@ class Schedule extends Page implements HasTable
                     ->state(fn (Evening $record): string => $record->played_at->format('H:i')),
                 TextColumn::make('venue_labels')->label('Локации')->placeholder('Не указаны')->wrap()->listWithLineBreaks()
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->where(function (Builder $query) use ($search): void {
-                        $query->where('address', 'like', "%{$search}%")
-                            ->orWhereHas('venues.location', fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"))
+                        $query->whereHas('venues.location', fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"))
                             ->orWhereHas('venues.halls', fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"));
                     })),
                 TextColumn::make('price')->label('Стоимость')->numeric(decimalPlaces: 2)->suffix(' руб.')->placeholder('Не указана'),

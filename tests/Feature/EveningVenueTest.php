@@ -18,7 +18,9 @@ use Database\Seeders\LocationSeeder;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -98,13 +100,38 @@ class EveningVenueTest extends TestCase
         }
     }
 
-    public function test_legacy_evening_can_be_edited_without_losing_its_address(): void
+    public function test_evening_without_locations_can_be_edited_without_an_old_address_field(): void
     {
-        $evening = Evening::create(['played_at' => '2030-11-28 19:30:00', 'address' => 'Старый адрес']);
+        $evening = Evening::create(['played_at' => '2030-11-28 19:30:00']);
         Livewire::test(EditEvening::class, ['record' => $evening->id])
+            ->assertDontSee('Ранее указанный адрес')
             ->fillForm(['price' => 25])->call('save')->assertHasNoFormErrors();
-        $this->assertSame(['Старый адрес'], $evening->fresh()->venue_labels);
+        $this->assertSame([], $evening->fresh()->venue_labels);
+        $this->assertFalse(Schema::hasColumn('evenings', 'address'));
         $this->assertSame('25.00', $evening->fresh()->price);
+    }
+
+    public function test_schedule_preloads_static_locations_and_all_halls_without_live_updates(): void
+    {
+        $component = Livewire::test(Schedule::class)->mountAction('create');
+        $page = $component->instance();
+        $schema = (new \ReflectionMethod(Schedule::class, 'getMountedActionSchema'))->invoke($page);
+        $venues = collect($schema->getComponents())->first(fn ($field) => $field instanceof Repeater);
+        $row = array_key_first($venues->getRawState());
+        [$location, $halls] = $venues->getChildSchema($row)->getComponents();
+
+        $this->assertFalse($location->hasDynamicOptions());
+        $this->assertFalse($location->isLive());
+        $this->assertFalse($location->isSearchable());
+        $this->assertCount(2, $location->getOptions());
+        view()->share('errors', new ViewErrorBag);
+        $html = $halls->toHtml();
+        $names = collect($halls->getViewData()['hallsByLocation'])->flatten(1)->pluck('name')->all();
+        foreach (['Manhattan', 'Brooklyn', 'Сицилия, #21', 'Токио, #49'] as $name) {
+            $this->assertContains($name, $names);
+        }
+        $this->assertStringNotContainsString('getFormSelectOptions', $html);
+        $this->assertStringNotContainsString('.live', $html);
     }
 
     public function test_used_locations_and_halls_cannot_be_removed_from_directory(): void

@@ -78,7 +78,6 @@ class EveningCsvExporter
             'Тип оплаты',
             'Сумма оплаты',
             'Примечание',
-            'Адрес',
             'Стоимость',
             'Локации и залы',
         ], ';');
@@ -189,7 +188,7 @@ class EveningCsvExporter
 
     private static function writeRow($handle, Evening $evening, array $row): void
     {
-        fputcsv($handle, [...$row, $evening->address, $evening->price,
+        fputcsv($handle, [...$row, $evening->price,
             json_encode($evening->venueExportData(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         ], ';');
     }

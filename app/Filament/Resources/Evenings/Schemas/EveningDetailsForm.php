@@ -2,12 +2,10 @@
 
 namespace App\Filament\Resources\Evenings\Schemas;
 
-use App\Models\Evening;
 use App\Rules\UnlockedEveningDate;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Infolists\Components\TextEntry;
 
 class EveningDetailsForm
 {
@@ -66,12 +64,6 @@ class EveningDetailsForm
                 ->nullable(),
 
             EveningVenuesForm::component(),
-
-            TextEntry::make('legacy_address')
-                ->label('Ранее указанный адрес')
-                ->state(fn (?Evening $record): ?string => $record?->address)
-                ->visible(fn (?Evening $record): bool => filled($record?->address))
-                ->columnSpanFull(),
         ];
     }
 }

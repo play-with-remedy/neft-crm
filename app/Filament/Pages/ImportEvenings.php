@@ -57,7 +57,6 @@ class ImportEvenings extends Page implements HasForms
         'payment_type' => 'Тип оплаты',
         'paid_amount' => 'Сумма оплаты',
         'note' => 'Примечание',
-        'address' => 'Адрес',
         'price' => 'Стоимость',
         'venues' => 'Локации и залы',
     ];
@@ -235,10 +234,6 @@ class ImportEvenings extends Page implements HasForms
                             $firstRow[self::HEADERS['project']] ?? null,
                         )?->id,
                     ];
-
-                    if (array_key_exists(self::HEADERS['address'], $firstRow)) {
-                        $eveningData['address'] = $this->nullableString($firstRow[self::HEADERS['address']]);
-                    }
 
                     if (array_key_exists(self::HEADERS['price'], $firstRow)) {
                         $eveningData['price'] = $this->schedulePrice($firstRow[self::HEADERS['price']]);

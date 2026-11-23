@@ -19,7 +19,6 @@ class Evening extends Model
         'played_at',
         'evening_type_id',
         'project_id',
-        'address',
         'price',
         'other_expenses',
         'locked_at',
@@ -102,10 +101,6 @@ class Evening extends Model
     public function getVenueLabelsAttribute(): array
     {
         $this->loadMissing(['venues.location', 'venues.halls']);
-
-        if ($this->venues->isEmpty()) {
-            return filled($this->address) ? [$this->address] : [];
-        }
 
         return $this->venues->map(fn (EveningVenue $venue): string => $venue->location->name.' — '.$venue->halls->pluck('name')->join('; '))->all();
     }

@@ -9,9 +9,11 @@ use App\Filament\Resources\Players\Pages\ListPlayers;
 use App\Models\Evening;
 use App\Models\ExpenseCategory;
 use App\Models\Host;
+use App\Models\Location;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Support\EveningCsvExporter;
+use Database\Seeders\LocationSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -56,9 +58,13 @@ class ImportNavigationTest extends TestCase
         Storage::fake('local');
         $evening = Evening::create([
             'played_at' => '2026-09-08 19:00:00',
-            'address' => 'Минск, ул. Клубная, 1',
             'price' => 32.50,
         ]);
+        $this->seed(LocationSeeder::class);
+        $location = Location::where('name', 'Neft')->sole();
+        $evening->syncVenueSelections([[
+            'location_id' => $location->id, 'hall_ids' => [$location->halls()->first()->id],
+        ]]);
         $host = Host::create(['nickname' => 'Host']);
         $player = Player::create(['nickname' => 'Player']);
         $paymentType = PaymentType::create(['type' => 'Cash']);
@@ -82,6 +88,7 @@ class ImportNavigationTest extends TestCase
         rewind($handle);
         $headers = fgetcsv($handle, separator: ';');
         $this->assertNotContains('Новый игрок', $headers);
+        $this->assertNotContains('Адрес', $headers);
         $rows = [];
 
         while (($row = fgetcsv($handle, separator: ';')) !== false) {
@@ -111,7 +118,7 @@ class ImportNavigationTest extends TestCase
             ->assertSet('result.skipped', 0);
 
         $evening->refresh();
-        $this->assertSame('Минск, ул. Клубная, 1', $evening->address);
+        $this->assertSame(['Neft — Manhattan'], $evening->venue_labels);
         $this->assertSame('32.50', $evening->price);
         $this->assertSame('20.15', $evening->staff->sole()->salary);
         $this->assertSame('10.25', $evening->expenses->sole()->amount);

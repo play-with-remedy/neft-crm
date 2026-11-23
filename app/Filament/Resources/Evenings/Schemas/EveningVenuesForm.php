@@ -8,8 +8,8 @@ use App\Models\Location;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\Alignment;
 use Illuminate\Validation\Rule;
 
@@ -23,12 +23,12 @@ class EveningVenuesForm
             ->schema([
                 Select::make('location_id')
                     ->label('Локация')
-                    ->options(fn (): array => Location::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(Location::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->native(false)
                     ->preload()
+                    ->dynamicOptions(false)
                     ->searchable(false)
-                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                    ->afterStateUpdated(fn (Set $set) => $set('hall_ids', []))
+                    ->distinct()
                     ->required()
                     ->exists('locations', 'id')
                     ->validationMessages([
@@ -36,17 +36,18 @@ class EveningVenuesForm
                         'distinct' => 'Эта локация уже добавлена.',
                         'exists' => 'Выберите существующую локацию.',
                     ]),
-                Select::make('hall_ids')
+                ViewField::make('hall_ids')
                     ->label('Залы')
-                    ->multiple()
-                    ->options(fn (Get $get): array => Hall::query()
-                        ->where('location_id', $get('location_id'))->orderBy('id')->pluck('name', 'id')->all())
-                    ->native(false)
-                    ->preload()
-                    ->searchable(false)
+                    ->view('filament.forms.venue-halls-select', [
+                        'hallsByLocation' => Hall::query()->orderBy('id')->get(['id', 'name', 'location_id'])
+                            ->groupBy('location_id')->map(fn ($halls): array => $halls
+                            ->map(fn (Hall $hall): array => ['id' => (string) $hall->id, 'name' => $hall->name])->all())->all(),
+                    ])
+                    ->default([])
                     ->required()
-                    ->minItems(1)
-                    ->nestedRecursiveRules([fn (Get $get) => Rule::exists('halls', 'id')->where('location_id', $get('location_id'))])
+                    ->rules(fn (Get $get): array => [
+                        'array', 'min:1', Rule::exists('halls', 'id')->where('location_id', $get('location_id')),
+                    ])
                     ->validationMessages([
                         'required' => 'Выберите хотя бы один зал.',
                         'min' => 'Выберите хотя бы один зал.',
