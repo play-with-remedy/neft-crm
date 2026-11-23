@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Support\EveningCsvExporter;
 use Database\Seeders\LocationSeeder;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -124,14 +125,41 @@ class EveningVenueTest extends TestCase
         $this->assertFalse($location->isLive());
         $this->assertFalse($location->isSearchable());
         $this->assertCount(2, $location->getOptions());
+        $this->assertInstanceOf(Select::class, $halls);
+        $this->assertTrue($halls->isMultiple());
+        $this->assertFalse($halls->hasDynamicOptions());
+        $this->assertFalse($halls->isLive());
+        $this->assertFalse($halls->isSearchable());
+        $this->assertCount(7, $halls->getOptions());
         view()->share('errors', new ViewErrorBag);
         $html = $halls->toHtml();
-        $names = collect($halls->getViewData()['hallsByLocation'])->flatten(1)->pluck('name')->all();
+        $names = array_values($halls->getOptions());
         foreach (['Manhattan', 'Brooklyn', 'Сицилия, #21', 'Токио, #49'] as $name) {
             $this->assertContains($name, $names);
         }
         $this->assertStringNotContainsString('getFormSelectOptions', $html);
         $this->assertStringNotContainsString('.live', $html);
+        $this->assertStringContainsString('selectFormComponent', $html);
+        $this->assertStringContainsString('updateHallOptions', $halls->getExtraAlpineAttributes()['x-init']);
+    }
+
+    public function test_editing_loads_venue_and_hall_relations_once_for_multiple_locations(): void
+    {
+        $evening = Evening::create(['played_at' => '2030-11-28 19:30:00']);
+        $evening->syncVenueSelections($this->selections());
+        $component = Livewire::test(Schedule::class);
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        try {
+            $component->mountTableAction('edit', $evening)->assertSet('mountedActions.0.data.venues', $this->selections());
+            $queries = collect(DB::getQueryLog())->pluck('query');
+        } finally {
+            DB::disableQueryLog();
+        }
+
+        $this->assertCount(1, $queries->filter(fn (string $sql): bool => str_contains($sql, 'from "evening_venues"')));
+        $this->assertCount(1, $queries->filter(fn (string $sql): bool => str_contains($sql, 'join "evening_venue_hall"')));
     }
 
     public function test_used_locations_and_halls_cannot_be_removed_from_directory(): void

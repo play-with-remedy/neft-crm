@@ -8,15 +8,20 @@ use App\Models\Location;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Enums\Alignment;
+use Illuminate\Support\Js;
 use Illuminate\Validation\Rule;
 
 class EveningVenuesForm
 {
     public static function component(): Repeater
     {
+        $halls = Hall::query()->orderBy('id')->get(['id', 'name', 'location_id']);
+        $hallsByLocation = $halls->groupBy('location_id')->map(fn ($items): array => $items->map(fn (Hall $hall): array => [
+            'value' => (string) $hall->id, 'label' => $hall->name, 'isDisabled' => false,
+        ])->all())->all();
+
         return Repeater::make('venues')
             ->label('Локации')
             ->table([TableColumn::make('Локация'), TableColumn::make('Залы')])
@@ -36,13 +41,16 @@ class EveningVenuesForm
                         'distinct' => 'Эта локация уже добавлена.',
                         'exists' => 'Выберите существующую локацию.',
                     ]),
-                ViewField::make('hall_ids')
+                Select::make('hall_ids')
                     ->label('Залы')
-                    ->view('filament.forms.venue-halls-select', [
-                        'hallsByLocation' => Hall::query()->orderBy('id')->get(['id', 'name', 'location_id'])
-                            ->groupBy('location_id')->map(fn ($halls): array => $halls
-                            ->map(fn (Hall $hall): array => ['id' => (string) $hall->id, 'name' => $hall->name])->all())->all(),
-                    ])
+                    ->multiple()
+                    ->native(false)
+                    ->options($halls->pluck('name', 'id')->all())
+                    ->preload()
+                    ->dynamicOptions(false)
+                    ->searchable(false)
+                    ->placeholder('Выберите залы')
+                    ->extraAlpineAttributes(fn (Select $component): array => self::hallSelectAttributes($component, $hallsByLocation))
                     ->default([])
                     ->required()
                     ->rules(fn (Get $get): array => [
@@ -62,12 +70,44 @@ class EveningVenuesForm
             ->addActionAlignment(Alignment::End)
             ->dehydrated(false)
             ->loadStateFromRelationshipsUsing(function (Repeater $component, Evening $record): void {
-                $component->state($record->venues()->with('halls')->get()->map(fn ($venue): array => [
+                $record->loadMissing('venues.halls');
+                $component->state($record->venues->map(fn ($venue): array => [
                     'location_id' => $venue->location_id,
                     'hall_ids' => $venue->halls->modelKeys(),
                 ])->all());
             })
             ->saveRelationshipsUsing(fn (Repeater $component, Evening $record) => $record->syncVenueSelections($component->getRawState() ?? []))
             ->columnSpanFull();
+    }
+
+    private static function hallSelectAttributes(Select $component, array $hallsByLocation): array
+    {
+        $options = Js::from($hallsByLocation);
+        $locationPath = Js::from(str($component->getStatePath())->beforeLast('.')->append('.location_id')->toString());
+
+        return ['x-init' => <<<JS
+            const hallsByLocation = {$options};
+            const updateHallOptions = (locationId, clearSelection = false) => {
+                if (clearSelection) {
+                    state = [];
+                    select.state = [];
+                }
+
+                const options = hallsByLocation[String(locationId)] ?? [];
+                select.options = options;
+                select.originalOptions = options;
+                select.populateLabelRepositoryFromOptions(options);
+                select.updateSelectedDisplay();
+                select.renderOptions();
+
+                if (locationId) select.enable();
+                else select.disable();
+            };
+
+            updateHallOptions(\$wire.\$get({$locationPath}));
+            \$watch(() => \$wire.\$get({$locationPath}), (value, previous) => {
+                if (String(value ?? '') !== String(previous ?? '')) updateHallOptions(value, true);
+            });
+            JS];
     }
 }
