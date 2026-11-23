@@ -18,7 +18,6 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -70,7 +69,7 @@ class Schedule extends Page implements HasTable
         return $table
             ->query(Evening::query()->with(['project', 'eveningType']))
             ->defaultSort('played_at', 'asc')
-            ->defaultGroup(Group::make('played_at')->date()->label('Дата'))
+            ->recordUrl(fn (Evening $record): string => EveningResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('project.name')->label('Проект')->placeholder('Не указан')->searchable(),
                 TextColumn::make('eveningType.name')->label('Тип вечера')->placeholder('Не указан')->searchable(),
@@ -95,9 +94,10 @@ class Schedule extends Page implements HasTable
                 SelectFilter::make('evening_type_id')->label('Тип вечера')->relationship('eveningType', 'name')->preload(),
             ])
             ->recordActions([
-                Action::make('open_evening')->label('Открыть вечер')->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn (Evening $record): string => EveningResource::getUrl('view', ['record' => $record])),
                 EditAction::make()->label('Изменить')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить вечер')
                     ->modalHeading('Изменить вечер')
                     ->modalWidth('3xl')
                     ->modalSubmitActionLabel('Сохранить')
@@ -108,6 +108,9 @@ class Schedule extends Page implements HasTable
                         ->columns(['default' => 1, 'sm' => 2]))
                     ->authorize(fn (Evening $record): bool => EveningResource::canEdit($record)),
                 DeleteAction::make()->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить вечер')
                     ->modalHeading('Удалить вечер?')
                     ->modalDescription('Вечер будет удалён из расписания и списка вечеров.')
                     ->modalSubmitActionLabel('Удалить')
