@@ -10,7 +10,7 @@ class SetupTelegramBot extends Command
 {
     protected $signature = 'telegram:setup {--url= : HTTPS URL of the Telegram webhook}';
 
-    protected $description = 'Подключает Telegram-бота проверки ников к CRM';
+    protected $description = 'Подключает Telegram-бота расписания к CRM';
 
     public function handle(TelegramBot $bot): int
     {
@@ -38,9 +38,14 @@ class SetupTelegramBot extends Command
             ]);
             $bot->request('setMyCommands', [
                 'commands' => [
-                    ['command' => 'start', 'description' => 'Открыть меню клуба'],
-                    ['command' => 'help', 'description' => 'Как пользоваться ботом'],
+                    ['command' => 'schedule', 'description' => 'Расписание игр на ближайшие 7 дней'],
                 ],
+            ]);
+            $bot->request('setMyDescription', [
+                'description' => 'Ближайшие игры клуба Neft: дата, время, локации, залы и стоимость. Нажми «Старт» или отправь /schedule, чтобы посмотреть расписание.',
+            ]);
+            $bot->request('setMyShortDescription', [
+                'short_description' => 'Расписание игр клуба Neft. Отправь /schedule — увидимся за игровым столом! 🙂',
             ]);
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\TelegramBot;
-use App\Services\TelegramPlayerConversation;
+use App\Services\TelegramSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -12,7 +12,7 @@ use RuntimeException;
 
 class TelegramWebhookController extends Controller
 {
-    public function __invoke(Request $request, TelegramBot $bot, TelegramPlayerConversation $conversation): JsonResponse
+    public function __invoke(Request $request, TelegramBot $bot, TelegramSchedule $schedule): JsonResponse
     {
         $secret = config('services.telegram.webhook_secret');
 
@@ -29,7 +29,7 @@ class TelegramWebhookController extends Controller
             return response()->json(['ok' => true]);
         }
 
-        $result = Cache::lock("telegram:update-lock:{$updateId}", 30)->get(function () use ($request, $updateId, $chatId, $bot, $conversation): JsonResponse {
+        $result = Cache::lock("telegram:update-lock:{$updateId}", 120)->get(function () use ($request, $updateId, $chatId, $bot, $schedule): JsonResponse {
             $processedKey = "telegram:processed:{$updateId}";
 
             if (Cache::has($processedKey)) {
@@ -42,12 +42,12 @@ class TelegramWebhookController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            $replyKey = "telegram:reply:{$updateId}";
+            $replyKey = "telegram:schedule-reply:{$updateId}";
             $reply = Cache::get($replyKey);
 
             if ($reply === null) {
-                $reply = Cache::lock("telegram:chat-lock:{$chatId}", 30)->get(function () use ($request, $conversation, $replyKey): array {
-                    $reply = $conversation->reply($request->input('message'));
+                $reply = Cache::lock("telegram:chat-lock:{$chatId}", 120)->get(function () use ($request, $schedule, $replyKey): array {
+                    $reply = [...$schedule->reply($request->input('message')), 'sent' => 0];
                     Cache::put($replyKey, $reply, now()->addDay());
 
                     return $reply;
@@ -59,7 +59,11 @@ class TelegramWebhookController extends Controller
             }
 
             try {
-                $bot->sendMessage($chatId, $reply['text'], $reply['reply_markup']);
+                for ($index = $reply['sent']; $index < count($reply['messages']); $index++) {
+                    $bot->sendMessage($chatId, $reply['messages'][$index], $reply['reply_markup']);
+                    $reply['sent'] = $index + 1;
+                    Cache::put($replyKey, $reply, now()->addDay());
+                }
             } catch (RuntimeException) {
                 return response()->json(['ok' => false], 503);
             }
