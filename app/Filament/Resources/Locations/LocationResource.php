@@ -11,13 +11,14 @@ use BackedEnum;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class LocationResource extends Resource
 {
     protected static ?string $model = Location::class;
 
-    protected static ?string $slug = 'addresses';
+    protected static ?string $slug = 'locations';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
@@ -46,5 +47,10 @@ class LocationResource extends Resource
     public static function getPages(): array
     {
         return ['index' => ListLocations::route('/')];
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return parent::canDelete($record) && ! $record->eveningVenues()->exists();
     }
 }

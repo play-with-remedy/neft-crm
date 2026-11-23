@@ -33,9 +33,10 @@ class EveningInfolist
                             ->suffix(' BYN')
                             ->placeholder('Не указана'),
 
-                        TextEntry::make('address')
-                            ->label('Адрес')
-                            ->placeholder('Не указан')
+                        TextEntry::make('venue_labels')
+                            ->label('Локации')
+                            ->listWithLineBreaks()
+                            ->placeholder('Не указаны')
                             ->columnSpanFull(),
                     ])
                     ->columns(4)
@@ -137,12 +138,12 @@ class EveningInfolist
                     ->collapsed()
                     ->columnSpanFull(),
 
-                Section::make(fn ($record) => 'Участники: ' . ($record?->participants?->count() ?? 0))
+                Section::make(fn ($record) => 'Участники: '.($record?->participants?->count() ?? 0))
                     ->schema([
                         RepeatableEntry::make('participants')
                             ->hiddenLabel()
                             ->getStateUsing(fn ($record) => $record->participants()
-                            ->with(['player', 'payments.paymentType'])
+                                ->with(['player', 'payments.paymentType'])
                                 ->leftJoin('players', 'players.id', '=', 'evening_participants.player_id')
                                 ->orderByDesc('evening_participants.paid_amount')
                                 ->orderBy('players.nickname')

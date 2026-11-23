@@ -1,4 +1,9 @@
 <style>
+    .fi-location-modal .fi-modal-footer {
+        margin-top: 1rem;
+        padding-top: 1.5rem;
+    }
+
     .fi-location-halls-repeater > table > thead {
         display: none;
     }

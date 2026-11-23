@@ -11,11 +11,14 @@ use App\Filament\Resources\Evenings\Pages\EditEvening;
 use App\Filament\Resources\Evenings\Pages\ListEvenings;
 use App\Models\Evening;
 use App\Models\EveningType;
+use App\Models\Location;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\EveningCsvExporter;
+use Database\Seeders\LocationSeeder;
+use Filament\Forms\Components\Repeater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +37,8 @@ class ScheduleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->beforeApplicationDestroyed(Repeater::fake());
+        $this->seed(LocationSeeder::class);
         Carbon::setTestNow('2026-11-21 09:00:00');
         $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
         $this->project = Project::create(['name' => 'Клуб']);
@@ -50,13 +55,14 @@ class ScheduleTest extends TestCase
     public function test_creating_a_scheduled_game_adds_the_same_record_to_evenings(): void
     {
         Livewire::test(Schedule::class)
-            ->callAction('create', data: $this->details())
+            ->callAction('create', data: $this->formDetails())
             ->assertHasNoActionErrors();
 
         $evening = Evening::query()->sole();
         $this->assertSame('2026-11-28 19:30:00', $evening->played_at->format('Y-m-d H:i:s'));
         $this->assertSame('30.50', $evening->price);
-        $this->assertSame('Минск, ул. Примерная, 1', $evening->address);
+        $this->assertNull($evening->address);
+        $this->assertSame(['Neft — Manhattan; Neft'], $evening->venue_labels);
         $this->assertCount(0, $evening->participants);
         Livewire::test(ListEvenings::class)->assertCanSeeTableRecords([$evening]);
     }
@@ -64,7 +70,7 @@ class ScheduleTest extends TestCase
     public function test_future_evening_created_through_regular_form_appears_in_schedule(): void
     {
         Livewire::test(CreateEvening::class)
-            ->fillForm($this->details())->call('create')->assertHasNoFormErrors();
+            ->fillForm($this->formDetails())->call('create')->assertHasNoFormErrors();
 
         Livewire::test(Schedule::class)->assertCanSeeTableRecords(Evening::all());
         $this->assertSame('19:30', Evening::query()->sole()->played_at->format('H:i'));
@@ -80,16 +86,17 @@ class ScheduleTest extends TestCase
         ]);
 
         Livewire::test(Schedule::class)
-            ->callTableAction('edit', $evening, data: [...$this->details(), 'address' => 'Новый адрес', 'price' => 0])
+            ->callTableAction('edit', $evening, data: [...$this->formDetails(), 'price' => 0])
             ->assertHasNoTableActionErrors();
 
-        $this->assertSame('Новый адрес', $evening->fresh()->address);
+        $this->assertSame('Минск, ул. Примерная, 1', $evening->fresh()->address);
+        $this->assertSame(['Neft — Manhattan; Neft'], $evening->fresh()->venue_labels);
         $this->assertSame('0.00', $evening->fresh()->price);
         $this->assertSame($participant->id, $evening->fresh()->participants->sole()->id);
         $this->assertSame('12.50', $participant->fresh()->payments->sole()->amount);
 
         Livewire::test(EditEvening::class, ['record' => $evening->getRouteKey()])
-            ->fillForm(['played_at' => '2026-11-29 20:15:00', 'address' => 'Ещё один адрес', 'price' => 42.75])
+            ->fillForm(['played_at' => '2026-11-29 20:15:00', 'price' => 42.75])
             ->call('save')->assertHasNoFormErrors();
 
         Livewire::test(Schedule::class)->assertCanSeeTableRecords([$evening->fresh()]);
@@ -114,7 +121,7 @@ class ScheduleTest extends TestCase
     public function test_schedule_requires_type_project_and_valid_non_negative_price(): void
     {
         Livewire::test(Schedule::class)
-            ->callAction('create', data: [...$this->details(), 'price' => -1, 'project_id' => null, 'evening_type_id' => null])
+            ->callAction('create', data: [...$this->formDetails(), 'price' => -1, 'project_id' => null, 'evening_type_id' => null])
             ->assertHasActionErrors(['price' => 'min', 'project_id' => 'required', 'evening_type_id' => 'required']);
         $this->assertDatabaseCount('evenings', 0);
     }
@@ -176,6 +183,17 @@ class ScheduleTest extends TestCase
         $this->assertSame('19:30', $imported->played_at->format('H:i'));
         $this->assertSame('30.50', $imported->price);
         $this->assertSame('Минск, ул. Примерная, 1', $imported->address);
+    }
+
+    private function formDetails(): array
+    {
+        $details = $this->details();
+        unset($details['address']);
+        $location = Location::query()->where('name', 'Neft')->sole();
+
+        return [...$details, 'venues' => [[
+            'location_id' => $location->id, 'hall_ids' => $location->halls()->limit(2)->pluck('id')->all(),
+        ]]];
     }
 
     private function details(): array

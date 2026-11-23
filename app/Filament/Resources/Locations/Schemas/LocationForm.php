@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Locations\Schemas;
 
+use App\Models\Hall;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -52,10 +53,15 @@ class LocationForm
                 })
                 ->defaultItems(1)->minItems(1)->reorderable(false)
                 ->compact()
-                ->addActionLabel('Добавить зал')
-                ->addActionAlignment(Alignment::Start)
+                ->addActionLabel('Добавить')
+                ->addActionAlignment(Alignment::End)
                 ->addAction(fn (Action $action): Action => $action
-                    ->iconButton()->icon('heroicon-m-plus')->color('primary')->tooltip('Добавить зал'))
+                    ->button()->icon(null)->color('primary')->tooltip('Добавить зал'))
+                ->deleteAction(fn (Action $action): Action => $action->disabled(function (array $arguments, Repeater $component): bool {
+                    $id = $component->getRawState()[$arguments['item']]['id'] ?? null;
+
+                    return filled($id) && Hall::query()->whereKey($id)->whereHas('eveningVenues')->exists();
+                }))
                 ->validationMessages(['min' => 'Добавьте хотя бы один зал.'])
                 ->columnSpanFull(),
         ]);

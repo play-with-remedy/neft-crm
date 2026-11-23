@@ -48,6 +48,7 @@ class Schedule extends Page implements HasTable
     {
         return [
             CreateAction::make()
+                ->databaseTransaction()
                 ->label('Добавить вечер')
                 ->modalHeading('Новый вечер в расписании')
                 ->modalWidth('3xl')
@@ -67,7 +68,7 @@ class Schedule extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(Evening::query()->with(['project', 'eveningType']))
+            ->query(Evening::query()->with(['project', 'eveningType', 'venues.location', 'venues.halls']))
             ->defaultSort('played_at', 'asc')
             ->recordUrl(fn (Evening $record): string => EveningResource::getUrl('view', ['record' => $record]))
             ->columns([
@@ -76,7 +77,12 @@ class Schedule extends Page implements HasTable
                 TextColumn::make('played_at')->label('Дата')->date('d.m.Y')->sortable(),
                 TextColumn::make('start_time')->label('Время')
                     ->state(fn (Evening $record): string => $record->played_at->format('H:i')),
-                TextColumn::make('address')->label('Адрес')->placeholder('Не указан')->wrap()->searchable(),
+                TextColumn::make('venue_labels')->label('Локации')->placeholder('Не указаны')->wrap()->listWithLineBreaks()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where(function (Builder $query) use ($search): void {
+                        $query->where('address', 'like', "%{$search}%")
+                            ->orWhereHas('venues.location', fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"))
+                            ->orWhereHas('venues.halls', fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"));
+                    })),
                 TextColumn::make('price')->label('Стоимость')->numeric(decimalPlaces: 2)->suffix(' руб.')->placeholder('Не указана'),
             ])
             ->filters([
@@ -95,6 +101,7 @@ class Schedule extends Page implements HasTable
             ])
             ->recordActions([
                 EditAction::make()->label('Изменить')
+                    ->databaseTransaction()
                     ->iconButton()
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Изменить вечер')

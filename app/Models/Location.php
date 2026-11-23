@@ -13,4 +13,9 @@ class Location extends Model
     {
         return $this->hasMany(Hall::class)->orderBy('id');
     }
+
+    public function eveningVenues(): HasMany
+    {
+        return $this->hasMany(EveningVenue::class);
+    }
 }

@@ -14,6 +14,8 @@ class EveningCsvExporter
     private const RELATIONS = [
         'eveningType',
         'project',
+        'venues.location',
+        'venues.halls',
         'expenses.category',
         'staff.host',
         'participants.player',
@@ -24,7 +26,7 @@ class EveningCsvExporter
     {
         return self::downloadQuery(
             Evening::query()->orderBy('played_at'),
-            'evenings-all-' . now()->format('Y-m-d-H-i-s') . '.csv',
+            'evenings-all-'.now()->format('Y-m-d-H-i-s').'.csv',
         );
     }
 
@@ -78,6 +80,7 @@ class EveningCsvExporter
             'Примечание',
             'Адрес',
             'Стоимость',
+            'Локации и залы',
         ], ';');
     }
 
@@ -166,8 +169,7 @@ class EveningCsvExporter
         EveningParticipant $participant,
         ?string $paymentType,
         mixed $amount,
-    ): void
-    {
+    ): void {
         self::writeRow($handle, $evening, [
             $evening->id,
             self::formatDateTime($evening->played_at),
@@ -187,7 +189,9 @@ class EveningCsvExporter
 
     private static function writeRow($handle, Evening $evening, array $row): void
     {
-        fputcsv($handle, [...$row, $evening->address, $evening->price], ';');
+        fputcsv($handle, [...$row, $evening->address, $evening->price,
+            json_encode($evening->venueExportData(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+        ], ';');
     }
 
     private static function formatDateTime($date): string

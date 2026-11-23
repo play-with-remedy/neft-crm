@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Locations\Tables;
 
+use App\Filament\Resources\Locations\LocationResource;
+use App\Models\Location;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Enums\Alignment;
@@ -23,15 +26,21 @@ class LocationsTable
             ])
             ->recordActions([
                 EditAction::make()->label('Изменить')->iconButton()->tooltip('Изменить локацию')
+                    ->databaseTransaction()
+                    ->extraModalWindowAttributes(['class' => 'fi-location-modal'])
                     ->modalHeading('Изменить локацию')->modalWidth('3xl')
                     ->modalSubmitActionLabel('Сохранить')->modalCancelActionLabel('Отмена')
                     ->modalFooterActionsAlignment(Alignment::End)
+                    ->modalFooterActions(fn (Action $action): array => [$action->getModalCancelAction(), $action->getModalSubmitAction()])
                     ->successNotificationTitle('Локация сохранена'),
                 DeleteAction::make()->label('Удалить')->iconButton()->tooltip('Удалить локацию')
+                    ->authorize(fn (Location $record): bool => LocationResource::canDelete($record))
+                    ->extraModalWindowAttributes(['class' => 'fi-location-modal'])
                     ->modalHeading('Удалить локацию?')
                     ->modalDescription('Локация и все её залы будут удалены.')
                     ->modalSubmitActionLabel('Удалить')->modalCancelActionLabel('Отмена')
                     ->modalFooterActionsAlignment(Alignment::End)
+                    ->modalFooterActions(fn (Action $action): array => [$action->getModalCancelAction(), $action->getModalSubmitAction()])
                     ->successNotificationTitle('Локация удалена'),
             ])
             ->emptyStateHeading('Локации пока не добавлены')

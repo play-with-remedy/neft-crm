@@ -9,7 +9,10 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditEvening extends EditRecord
 {
+    protected ?bool $hasDatabaseTransactions = true;
+
     protected static string $resource = EveningResource::class;
+
     protected static ?string $breadcrumb = 'Редактировать';
 
     protected function getHeaderActions(): array

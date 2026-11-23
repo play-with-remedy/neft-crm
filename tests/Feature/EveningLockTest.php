@@ -11,8 +11,10 @@ use App\Filament\Resources\Evenings\Pages\ListEvenings;
 use App\Filament\Resources\Evenings\Pages\ViewEvening;
 use App\Models\Evening;
 use App\Models\EveningLockPeriod;
+use App\Models\Location;
 use App\Models\User;
 use App\Services\EveningLockService;
+use Filament\Forms\Components\Repeater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -145,8 +147,14 @@ class EveningLockTest extends TestCase
 
         $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));
 
+        $this->beforeApplicationDestroyed(Repeater::fake());
+        $location = Location::create(['name' => 'Клуб', 'address' => 'Адрес клуба']);
+        $hall = $location->halls()->create(['name' => 'Основной']);
+
         Livewire::test(CreateEvening::class)
-            ->fillForm(['played_at' => '2026-10-10'])
+            ->fillForm(['played_at' => '2026-10-10', 'venues' => [[
+                'location_id' => $location->id, 'hall_ids' => [$hall->id],
+            ]]])
             ->call('create')
             ->assertHasNoFormErrors();
 

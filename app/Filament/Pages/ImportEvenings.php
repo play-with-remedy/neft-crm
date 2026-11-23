@@ -6,6 +6,7 @@ use App\Models\Evening;
 use App\Models\EveningType;
 use App\Models\ExpenseCategory;
 use App\Models\Host;
+use App\Models\Location;
 use App\Models\PaymentType;
 use App\Models\Player;
 use App\Models\Project;
@@ -19,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use UnitEnum;
 
 class ImportEvenings extends Page implements HasForms
@@ -57,6 +59,7 @@ class ImportEvenings extends Page implements HasForms
         'note' => 'Примечание',
         'address' => 'Адрес',
         'price' => 'Стоимость',
+        'venues' => 'Локации и залы',
     ];
 
     private const REQUIRED_HEADERS = [
@@ -255,6 +258,10 @@ class ImportEvenings extends Page implements HasForms
                         $evening->update($eveningData);
                     }
 
+                    if (array_key_exists(self::HEADERS['venues'], $firstRow)) {
+                        $this->importVenues($evening, $firstRow[self::HEADERS['venues']]);
+                    }
+
                     $evening->staff()->delete();
                     $evening->participants()->delete();
                     $evening->expenses()->delete();
@@ -345,6 +352,35 @@ class ImportEvenings extends Page implements HasForms
             ->send();
 
         $this->form->fill();
+    }
+
+    private function importVenues(Evening $evening, ?string $value): void
+    {
+        $venues = filled($value) ? json_decode($value, true, flags: JSON_THROW_ON_ERROR) : [];
+        Validator::make(['venues' => $venues], [
+            'venues' => ['present', 'array', 'list'],
+            'venues.*.location' => ['required', 'string', 'max:255', 'distinct'],
+            'venues.*.address' => ['required', 'string', 'max:500'],
+            'venues.*.halls' => ['required', 'array', 'list', 'min:1'],
+            'venues.*.halls.*' => ['required', 'string', 'max:255'],
+        ])->validate();
+
+        $selections = [];
+
+        foreach ($venues as $venue) {
+            $location = Location::firstOrCreate(['name' => trim($venue['location'])], [
+                'address' => trim($venue['address']),
+            ]);
+            $hallIds = [];
+
+            foreach ($venue['halls'] as $name) {
+                $hallIds[] = $location->halls()->firstOrCreate(['name' => trim($name)])->id;
+            }
+
+            $selections[] = ['location_id' => $location->id, 'hall_ids' => $hallIds];
+        }
+
+        $evening->syncVenueSelections($selections);
     }
 
     private function importStaff(Evening $evening, array $rowData, int &$skipped, array &$skippedList): int

@@ -37,7 +37,7 @@ class LocationResourceTest extends TestCase
 
         $kibitka = Location::query()->where('name', 'Кибитка')->sole();
         $this->assertSame('Октябрьская 16/28', $kibitka->address);
-        $this->assertSame(['Сицилия 21', 'Детройит 30', 'Чикаго 60', 'Токио 49'], $kibitka->halls->pluck('name')->all());
+        $this->assertSame(['Сицилия, #21', 'Детройит, #30', 'Чикаго, #60', 'Токио, #49'], $kibitka->halls->pluck('name')->all());
     }
 
     public function test_seeder_can_be_repeated_without_duplicates_or_overwriting_manual_changes(): void
@@ -59,10 +59,11 @@ class LocationResourceTest extends TestCase
         $this->seed(LocationSeeder::class);
         $this->assertSame('Служебные данные', LocationResource::getNavigationGroup());
         $this->assertTrue(LocationResource::canAccess());
+        $this->assertStringEndsWith('/admin/locations', LocationResource::getUrl(panel: 'admin'));
         $this->get(LocationResource::getUrl(panel: 'admin'))->assertOk()->assertSee('Локации');
         Livewire::test(ListLocations::class)
             ->assertCanSeeTableRecords(Location::all())
-            ->assertSee('Аранская 8')->assertSee('Manhattan')->assertSee('Токио 49');
+            ->assertSee('Аранская 8')->assertSee('Manhattan')->assertSee('Токио, #49');
     }
 
     public function test_regular_admin_cannot_open_the_service_directory(): void

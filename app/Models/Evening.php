@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class Evening extends Model
 {
@@ -55,6 +58,67 @@ class Evening extends Model
     public function participants(): HasMany
     {
         return $this->hasMany(EveningParticipant::class);
+    }
+
+    public function venues(): HasMany
+    {
+        return $this->hasMany(EveningVenue::class)->orderBy('id');
+    }
+
+    public function syncVenueSelections(array $selections): void
+    {
+        Validator::make(['venues' => $selections], [
+            'venues' => ['array'],
+            'venues.*.location_id' => ['required', 'integer', 'distinct', 'exists:locations,id'],
+            'venues.*.hall_ids' => ['required', 'array', 'min:1'],
+            'venues.*.hall_ids.*' => ['required', 'integer', 'exists:halls,id'],
+        ], [
+            'venues.*.location_id.*' => 'Выберите существующую локацию без повторений.',
+            'venues.*.hall_ids.*' => 'Выберите хотя бы один зал выбранной локации.',
+        ])->validate();
+
+        DB::transaction(function () use ($selections): void {
+            $locationIds = [];
+
+            foreach ($selections as $selection) {
+                $locationId = (int) $selection['location_id'];
+                $hallIds = array_values(array_unique(array_map('intval', $selection['hall_ids'])));
+
+                if (Hall::query()->where('location_id', $locationId)->whereKey($hallIds)->count() !== count($hallIds)) {
+                    throw ValidationException::withMessages(['venues' => 'Выбранные залы должны принадлежать своей локации.']);
+                }
+
+                $venue = $this->venues()->firstOrCreate(['location_id' => $locationId]);
+                $venue->halls()->sync($hallIds);
+                $locationIds[] = $locationId;
+            }
+
+            $this->venues()->whereNotIn('location_id', $locationIds)->delete();
+        });
+
+        $this->unsetRelation('venues');
+    }
+
+    public function getVenueLabelsAttribute(): array
+    {
+        $this->loadMissing(['venues.location', 'venues.halls']);
+
+        if ($this->venues->isEmpty()) {
+            return filled($this->address) ? [$this->address] : [];
+        }
+
+        return $this->venues->map(fn (EveningVenue $venue): string => $venue->location->name.' — '.$venue->halls->pluck('name')->join('; '))->all();
+    }
+
+    public function venueExportData(): array
+    {
+        $this->loadMissing(['venues.location', 'venues.halls']);
+
+        return $this->venues->map(fn (EveningVenue $venue): array => [
+            'location' => $venue->location->name,
+            'address' => $venue->location->address,
+            'halls' => $venue->halls->pluck('name')->all(),
+        ])->all();
     }
 
     public function staff(): HasMany

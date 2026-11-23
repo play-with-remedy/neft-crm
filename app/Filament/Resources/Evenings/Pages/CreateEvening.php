@@ -7,9 +7,13 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateEvening extends CreateRecord
 {
+    protected ?bool $hasDatabaseTransactions = true;
+
     protected static string $resource = EveningResource::class;
+
     protected static ?string $title = 'Новый вечер';
-     protected static ?string $breadcrumb = 'Создать';
+
+    protected static ?string $breadcrumb = 'Создать';
 
     protected function getFormActions(): array
     {
