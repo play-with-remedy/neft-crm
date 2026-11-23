@@ -5,12 +5,13 @@ namespace App\Filament\Resources\Locations\Pages;
 use App\Filament\Resources\Locations\LocationResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Enums\Alignment;
 
 class ListLocations extends ListRecords
 {
     protected static string $resource = LocationResource::class;
 
-    protected static ?string $title = 'Адреса';
+    protected static ?string $title = 'Локации';
 
     protected static ?string $breadcrumb = 'Список';
 
@@ -25,6 +26,7 @@ class ListLocations extends ListRecords
             CreateAction::make()->label('Добавить локацию')
                 ->modalHeading('Новая локация')->modalWidth('3xl')
                 ->modalSubmitActionLabel('Создать')->modalCancelActionLabel('Отмена')
+                ->modalFooterActionsAlignment(Alignment::End)
                 ->createAnother(false)->successNotificationTitle('Локация добавлена'),
         ];
     }

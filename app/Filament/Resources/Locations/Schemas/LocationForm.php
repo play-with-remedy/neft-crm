@@ -3,9 +3,12 @@
 namespace App\Filament\Resources\Locations\Schemas;
 
 use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
 
 class LocationForm
 {
@@ -28,8 +31,10 @@ class LocationForm
                     'max' => 'Адрес не должен быть длиннее 500 символов.',
                 ]),
             Repeater::make('halls')->label('Залы')->relationship()
+                ->table([TableColumn::make('Зал')->hiddenHeaderLabel()])
+                ->extraAttributes(['class' => 'fi-location-halls-repeater'])
                 ->schema([
-                    TextInput::make('name')->label('Зал')->required()->maxLength(255)
+                    TextInput::make('name')->label('Зал')->hiddenLabel()->required()->maxLength(255)
                         ->dehydrateStateUsing(fn ($state): string => trim((string) $state))
                         ->validationMessages([
                             'required' => 'Укажите название зала.',
@@ -46,7 +51,11 @@ class LocationForm
                     }
                 })
                 ->defaultItems(1)->minItems(1)->reorderable(false)
+                ->compact()
                 ->addActionLabel('Добавить зал')
+                ->addActionAlignment(Alignment::Start)
+                ->addAction(fn (Action $action): Action => $action
+                    ->iconButton()->icon('heroicon-m-plus')->color('primary')->tooltip('Добавить зал'))
                 ->validationMessages(['min' => 'Добавьте хотя бы один зал.'])
                 ->columnSpanFull(),
         ]);

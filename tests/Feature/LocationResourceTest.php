@@ -59,7 +59,7 @@ class LocationResourceTest extends TestCase
         $this->seed(LocationSeeder::class);
         $this->assertSame('Служебные данные', LocationResource::getNavigationGroup());
         $this->assertTrue(LocationResource::canAccess());
-        $this->get(LocationResource::getUrl(panel: 'admin'))->assertOk()->assertSee('Адреса');
+        $this->get(LocationResource::getUrl(panel: 'admin'))->assertOk()->assertSee('Локации');
         Livewire::test(ListLocations::class)
             ->assertCanSeeTableRecords(Location::all())
             ->assertSee('Аранская 8')->assertSee('Manhattan')->assertSee('Токио 49');

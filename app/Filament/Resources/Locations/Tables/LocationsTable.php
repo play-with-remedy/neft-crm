@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Locations\Tables;
 
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Enums\Alignment;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,11 +25,13 @@ class LocationsTable
                 EditAction::make()->label('Изменить')->iconButton()->tooltip('Изменить локацию')
                     ->modalHeading('Изменить локацию')->modalWidth('3xl')
                     ->modalSubmitActionLabel('Сохранить')->modalCancelActionLabel('Отмена')
+                    ->modalFooterActionsAlignment(Alignment::End)
                     ->successNotificationTitle('Локация сохранена'),
                 DeleteAction::make()->label('Удалить')->iconButton()->tooltip('Удалить локацию')
                     ->modalHeading('Удалить локацию?')
                     ->modalDescription('Локация и все её залы будут удалены.')
                     ->modalSubmitActionLabel('Удалить')->modalCancelActionLabel('Отмена')
+                    ->modalFooterActionsAlignment(Alignment::End)
                     ->successNotificationTitle('Локация удалена'),
             ])
             ->emptyStateHeading('Локации пока не добавлены')

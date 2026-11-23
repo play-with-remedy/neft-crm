@@ -23,7 +23,7 @@ class LocationResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static ?string $navigationLabel = 'Адреса';
+    protected static ?string $navigationLabel = 'Локации';
 
     protected static ?string $modelLabel = 'локация';
 
