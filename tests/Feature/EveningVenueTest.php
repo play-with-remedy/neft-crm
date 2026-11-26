@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Filament\Pages\ImportEvenings;
 use App\Filament\Pages\Schedule;
+use App\Filament\Resources\Evenings\Pages\CreateEvening;
 use App\Filament\Resources\Evenings\Pages\EditEvening;
 use App\Filament\Resources\Locations\LocationResource;
 use App\Filament\Resources\Locations\Pages\ListLocations;
@@ -36,6 +37,45 @@ class EveningVenueTest extends TestCase
         $this->beforeApplicationDestroyed(Repeater::fake());
         $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]));
         $this->seed(LocationSeeder::class);
+    }
+
+    public function test_evening_can_be_created_without_locations_and_locations_can_be_added_later(): void
+    {
+        Livewire::test(CreateEvening::class)
+            ->assertFormSet(['venues' => []])
+            ->fillForm(['played_at' => '2030-11-28 19:30:00'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $evening = Evening::query()->sole();
+        $this->assertDatabaseCount('evening_venues', 0);
+        $this->assertDatabaseCount('evening_venue_hall', 0);
+
+        Livewire::test(EditEvening::class, ['record' => $evening->id])
+            ->fillForm(['venues' => $this->selections()])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertCount(2, $evening->fresh()->venues);
+        $this->assertDatabaseCount('evening_venue_hall', 4);
+    }
+
+    public function test_schedule_evening_can_be_created_without_locations(): void
+    {
+        Livewire::test(Schedule::class)->mountAction('create')
+            ->assertSet('mountedActions.0.data.venues', [])
+            ->fillForm([
+                'played_at' => '2030-11-28 19:30:00',
+                'project_id' => Project::create(['name' => 'Club'])->id,
+                'evening_type_id' => EveningType::create(['name' => 'Mafia'])->id,
+            ])
+            ->callMountedAction()
+            ->assertHasNoActionErrors();
+
+        $this->assertDatabaseCount('evenings', 1);
+        $this->assertDatabaseCount('evening_venues', 0);
+        $this->assertDatabaseCount('evening_venue_hall', 0);
+        $this->assertSame([], Evening::query()->sole()->venue_labels);
     }
 
     public function test_multiple_locations_and_halls_can_be_saved_and_edited_through_both_forms(): void
@@ -114,7 +154,8 @@ class EveningVenueTest extends TestCase
 
     public function test_schedule_preloads_static_locations_and_all_halls_without_live_updates(): void
     {
-        $component = Livewire::test(Schedule::class)->mountAction('create');
+        $component = Livewire::test(Schedule::class)->mountAction('create')
+            ->fillForm(['venues' => [['location_id' => null, 'hall_ids' => []]]]);
         $page = $component->instance();
         $schema = (new \ReflectionMethod(Schedule::class, 'getMountedActionSchema'))->invoke($page);
         $venues = collect($schema->getComponents())->first(fn ($field) => $field instanceof Repeater);
