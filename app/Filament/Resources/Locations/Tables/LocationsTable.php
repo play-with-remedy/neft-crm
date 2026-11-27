@@ -35,6 +35,8 @@ class LocationsTable
                     ->successNotificationTitle('Локация сохранена'),
                 DeleteAction::make()->label('Удалить')->iconButton()->tooltip('Удалить локацию')
                     ->authorize(fn (Location $record): bool => LocationResource::canDelete($record))
+                    ->authorizationTooltip()
+                    ->authorizationMessage('Нельзя удалить локацию, которая используется в вечерах.')
                     ->extraModalWindowAttributes(['class' => 'fi-location-modal'])
                     ->modalHeading('Удалить локацию?')
                     ->modalDescription('Локация и все её залы будут удалены.')

@@ -21,11 +21,17 @@ class PaymentTypesTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить тип оплаты')
                     ->modalHeading('Редактирование типа оплаты')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить тип оплаты')
                     ->modalHeading('Удаление типа оплаты')
                     ->modalDescription('Вы уверены, что хотите удалить тип оплаты?')
                     ->modalSubmitActionLabel('Удалить')

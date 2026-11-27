@@ -23,11 +23,17 @@ class ExpenseCategoriesTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить статью расходов')
                     ->modalHeading('Редактирование статьи расходов')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить статью расходов')
                     ->modalHeading('Удаление статьи расходов')
                     ->modalDescription('Вы уверены, что хотите удалить статью расходов?')
                     ->modalSubmitActionLabel('Удалить')

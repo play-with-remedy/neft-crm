@@ -21,11 +21,17 @@ class ProjectsTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить проект')
                     ->modalHeading('Редактирование проекта')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить проект')
                     ->modalHeading('Удаление проекта')
                     ->modalDescription('Вы уверены, что хотите удалить проект?')
                     ->modalSubmitActionLabel('Удалить')

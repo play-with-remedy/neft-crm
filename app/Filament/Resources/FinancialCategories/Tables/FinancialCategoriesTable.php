@@ -154,6 +154,8 @@ class FinancialCategoriesTable
                 Action::make('add_child')
                     ->label('Добавить дочернюю')
                     ->icon('heroicon-o-plus')
+                    ->iconButton()
+                    ->tooltip('Добавить дочернюю категорию')
                     ->visible(
                         fn (FinancialCategory $record): bool =>
                             $record->level < 3
@@ -192,10 +194,16 @@ class FinancialCategoriesTable
                     }),
 
                 EditAction::make()
-                    ->label('Редактировать'),
+                    ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить финансовую категорию'),
 
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить финансовую категорию')
                     ->visible(
                         fn (FinancialCategory $record): bool =>
                             ! $record->is_system

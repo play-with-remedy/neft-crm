@@ -26,11 +26,17 @@ class EveningTypesTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить тип проекта')
                     ->modalHeading('Редактирование типа проекта')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить тип проекта')
                     ->modalHeading('Удаление типа проекта')
                     ->modalDescription('Вы уверены, что хотите удалить тип проект?')
                     ->modalSubmitActionLabel('Удалить')

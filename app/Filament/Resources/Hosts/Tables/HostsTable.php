@@ -33,11 +33,17 @@ class HostsTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить админа')
                     ->modalHeading('Редактирование админа')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить админа')
                     ->modalHeading('Удаление админа')
                     ->modalDescription('Вы уверены, что хотите удалить админа?')
                     ->modalSubmitActionLabel('Удалить')

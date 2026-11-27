@@ -25,11 +25,17 @@ class SourcesTable
             ->recordActions([
                 EditAction::make()
                     ->label('Редактировать')
+                    ->iconButton()
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Изменить источник')
                     ->modalHeading('Редактирование источника')
                     ->modalSubmitActionLabel('Сохранить')
                     ->modalCancelActionLabel('Отмена'),
                 DeleteAction::make()
                     ->label('Удалить')
+                    ->iconButton()
+                    ->icon('heroicon-o-trash')
+                    ->tooltip('Удалить источник')
                     ->modalHeading('Удаление источинка')
                     ->modalDescription('Вы уверены, что хотите удалить источник?')
                     ->modalSubmitActionLabel('Удалить')

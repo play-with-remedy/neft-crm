@@ -209,7 +209,9 @@ class EveningVenueTest extends TestCase
         $evening->syncVenueSelections($this->selections());
         $location = $evening->venues->first()->location;
         $this->assertFalse(LocationResource::canDelete($location));
-        Livewire::test(ListLocations::class)->assertTableActionHidden('delete', $location);
+        Livewire::test(ListLocations::class)
+            ->assertTableActionVisible('delete', $location)
+            ->assertTableActionDisabled('delete', $location);
 
         Livewire::test(ListLocations::class)->mountTableAction('edit', $location)
             ->fillForm(['halls' => []])->fillForm([
