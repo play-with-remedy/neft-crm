@@ -17,6 +17,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Collection;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -43,6 +44,16 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([])
+            ->bootUsing(function (Panel $panel): void {
+                collect([...$panel->getPages(), ...$panel->getResources()])
+                    ->filter(fn (string $class): bool => in_array($class::getNavigationGroup(), ['Служебные данные', 'Отчеты'], true))
+                    ->groupBy(fn (string $class): string => $class::getNavigationGroup())
+                    ->each(function (Collection $classes): void {
+                        $classes->sortBy(fn (string $class): string => mb_strtolower($class::getNavigationLabel()))
+                            ->values()
+                            ->each(fn (string $class, int $index) => $class::navigationSort($index));
+                    });
+            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
