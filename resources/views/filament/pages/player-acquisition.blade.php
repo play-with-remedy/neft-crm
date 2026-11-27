@@ -19,6 +19,18 @@
             gap: 10px;
         }
 
+        .acquisition-period-range .acquisition-period-input,
+        .acquisition-period-range .acquisition-period-apply {
+            box-sizing: border-box;
+            height: 44px;
+        }
+
+        .acquisition-period-range .acquisition-period-apply {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .acquisition-period-field label {
             display: block;
             margin-bottom: 5px;

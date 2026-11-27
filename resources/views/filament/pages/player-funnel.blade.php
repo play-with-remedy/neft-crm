@@ -130,6 +130,18 @@
             gap: 10px;
         }
 
+        .funnel-period-range .funnel-period-input,
+        .funnel-period-range .funnel-period-apply {
+            box-sizing: border-box;
+            height: 44px;
+        }
+
+        .funnel-period-range .funnel-period-apply {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .funnel-period-field label {
             display: block;
             margin-bottom: 5px;
