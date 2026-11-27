@@ -7,6 +7,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use App\Filament\Pages\Dashboard;
+use App\Livewire\TwoLevelSidebar;
 use App\Filament\Resources\Locations\Pages\ListLocations;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -30,11 +31,18 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->favicon(asset('favicon.svg'))
+            ->brandName('NEFT CRM')
+            ->brandLogo(fn () => view('filament.partials.brand-logo'))
+            ->brandLogoHeight('2rem')
+            ->globalSearch(false)
+            ->sidebarLivewireComponent(TwoLevelSidebar::class)
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.date-picker-styles'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.select-styles'))
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.two-level-sidebar-assets'))
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.background-styles'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.evening-payment-styles'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.location-hall-styles'), scopes: ListLocations::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
