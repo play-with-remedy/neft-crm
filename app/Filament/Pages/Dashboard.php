@@ -4,10 +4,9 @@ namespace App\Filament\Pages;
 
 use App\Filament\Widgets\ClubStatsOverview;
 use App\Filament\Widgets\ClubWelcome;
-use App\Filament\Widgets\LatestEvenings;
 use App\Filament\Widgets\MonthlyPerformanceChart;
+use App\Filament\Widgets\TodaysBirthdays;
 use Filament\Pages\Dashboard as BaseDashboard;
-use Illuminate\Contracts\Support\Htmlable;
 
 class Dashboard extends BaseDashboard
 {
@@ -15,24 +14,17 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Главная';
 
-    public function getSubheading(): string | Htmlable | null
-    {
-        return now()
-            ->locale('ru')
-            ->translatedFormat('F Y') . ' · ключевые показатели и последние события';
-    }
-
     public function getWidgets(): array
     {
         return [
             ClubWelcome::class,
             ClubStatsOverview::class,
             MonthlyPerformanceChart::class,
-            LatestEvenings::class,
+            TodaysBirthdays::class,
         ];
     }
 
-    public function getColumns(): int | array
+    public function getColumns(): int|array
     {
         return [
             'default' => 1,
