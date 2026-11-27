@@ -34,13 +34,13 @@
         .cash-book-summary__title {
             font-size: 16px;
             font-weight: 600;
-            color: #ffffff;
+            color: #111827;
             margin: 0;
         }
 
         .cash-book-summary__subtitle {
             font-size: 13px;
-            color: #9ca3af;
+            color: #6b7280;
             margin-top: 4px;
         }
 
@@ -54,21 +54,21 @@
             margin: 20px 0 10px;
             font-size: 13px;
             font-weight: 600;
-            color: #d4d4d8;
+            color: #374151;
         }
 
         .cash-book-summary__card {
-            background: #18181b;
-            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: #fff;
+            border: 1px solid #e5e7eb;
             border-radius: 14px;
             padding: 14px 16px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .cash-book-summary__label {
             font-size: 12px;
             font-weight: 500;
-            color: #a1a1aa;
+            color: #6b7280;
             margin-bottom: 8px;
         }
 
@@ -76,16 +76,48 @@
             font-size: 20px;
             line-height: 1.2;
             font-weight: 700;
-            color: #ffffff;
+            color: #111827;
             white-space: nowrap;
         }
 
         .cash-book-summary__card--profit .cash-book-summary__value {
-            color: #22c55e;
+            color: #15803d;
         }
 
         .cash-book-summary__card--expenses .cash-book-summary__value,
         .cash-book-summary__card--salary .cash-book-summary__value {
+            color: #c2410c;
+        }
+
+        .dark .cash-book-summary__title,
+        .dark .cash-book-summary__value {
+            color: #fff;
+        }
+
+        .dark .cash-book-summary__subtitle {
+            color: #9ca3af;
+        }
+
+        .dark .cash-book-summary__section-title {
+            color: #d4d4d8;
+        }
+
+        .dark .cash-book-summary__card {
+            background: #18181b;
+            border-color: rgba(255, 255, 255, 0.10);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        }
+
+        .dark .cash-book-summary__label {
+            color: #a1a1aa;
+        }
+
+        .dark .cash-book-summary__card--profit .cash-book-summary__value {
+            color: #22c55e;
+        }
+
+        .dark .cash-book-summary__card--expenses .cash-book-summary__value,
+        .dark .cash-book-summary__card--salary .cash-book-summary__value {
             color: #f97316;
         }
     </style>
