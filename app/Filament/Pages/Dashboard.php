@@ -14,6 +14,11 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Главная';
 
+    public function getPageClasses(): array
+    {
+        return [...parent::getPageClasses(), 'club-dashboard'];
+    }
+
     public function getWidgets(): array
     {
         return [

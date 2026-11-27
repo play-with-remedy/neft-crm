@@ -30,16 +30,29 @@
 
 <style>
     .club-welcome {
+        --welcome-background: linear-gradient(120deg, #fff, #fff4dd);
+        --welcome-heading: #1c1917;
+        --welcome-text: #57534e;
+        --welcome-accent: #92400e;
+        --welcome-grid: rgba(146, 64, 14, .16);
+        --welcome-shadow: rgba(120, 53, 15, .25);
         position: relative;
         isolation: isolate;
         overflow: hidden;
         border-radius: 1.25rem;
         padding: clamp(1.5rem, 3vw, 2.25rem);
-        color: #fff;
-        background:
-            linear-gradient(120deg, rgba(24, 24, 27, .98), rgba(69, 26, 3, .94)),
-            #18181b;
-        box-shadow: 0 18px 45px -26px rgba(120, 53, 15, .7);
+        color: var(--welcome-heading);
+        background: var(--welcome-background);
+        box-shadow: 0 18px 45px -26px var(--welcome-shadow);
+    }
+
+    .dark .club-welcome {
+        --welcome-background: linear-gradient(120deg, rgba(24, 24, 27, .98), rgba(69, 26, 3, .94)), #18181b;
+        --welcome-heading: #fff;
+        --welcome-text: rgba(255, 255, 255, .7);
+        --welcome-accent: #fbbf24;
+        --welcome-grid: rgba(255, 255, 255, .16);
+        --welcome-shadow: rgba(120, 53, 15, .7);
     }
 
     .club-welcome::after {
@@ -49,8 +62,8 @@
         z-index: -1;
         opacity: .12;
         background-image:
-            linear-gradient(rgba(255, 255, 255, .16) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, .16) 1px, transparent 1px);
+            linear-gradient(var(--welcome-grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--welcome-grid) 1px, transparent 1px);
         background-size: 42px 42px;
         mask-image: linear-gradient(to left, #000, transparent 72%);
     }
@@ -66,7 +79,7 @@
 
     .club-welcome__eyebrow {
         margin-bottom: .55rem;
-        color: #fbbf24;
+        color: var(--welcome-accent);
         font-size: .75rem;
         font-weight: 700;
         letter-spacing: .12em;
@@ -83,7 +96,7 @@
     .club-welcome__text {
         max-width: 42rem;
         margin-top: .65rem;
-        color: rgba(255, 255, 255, .7);
+        color: var(--welcome-text);
         font-size: .9rem;
         line-height: 1.55;
     }

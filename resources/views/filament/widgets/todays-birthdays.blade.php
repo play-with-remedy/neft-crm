@@ -1,8 +1,43 @@
 <x-filament-widgets::widget class="fi-wi-table todays-birthdays-widget">
     <style>
+        .club-dashboard .fi-wi-chart > .fi-section {
+            height: 100%;
+        }
+
         .todays-birthdays-widget {
-            --birthday-header-height: 40px;
-            --birthday-row-height: 48px;
+            display: flex;
+            min-height: 440px;
+        }
+
+        .todays-birthdays-widget > .fi-ta {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .todays-birthdays-widget .fi-ta-ctn {
+            flex: 1;
+            height: 100%;
+        }
+
+        .todays-birthdays-widget .fi-ta-main {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .todays-birthdays-widget .fi-ta-header-ctn {
+            flex: 0 0 auto;
+        }
+
+        .todays-birthdays-widget .fi-ta-main:has(> .fi-ta-empty-state) > .fi-ta-content-ctn {
+            display: none;
+        }
+
+        .todays-birthdays-widget .fi-ta-empty-state {
+            display: grid;
+            flex: 1;
+            place-content: center;
         }
 
         .todays-birthdays-widget .birthdays-heading {
@@ -29,7 +64,9 @@
         }
 
         .todays-birthdays-widget .fi-ta-content-ctn {
-            max-height: calc(var(--birthday-header-height) + 5 * var(--birthday-row-height));
+            flex: 1 1 0;
+            height: 0;
+            min-height: 0;
             overflow: auto;
             overscroll-behavior: contain;
         }
@@ -46,13 +83,13 @@
         }
 
         .todays-birthdays-widget .fi-ta-header-cell {
-            height: var(--birthday-header-height);
+            height: 40px;
             padding-top: 8px;
             padding-bottom: 8px;
         }
 
         .todays-birthdays-widget .fi-ta-table > tbody > tr {
-            height: var(--birthday-row-height);
+            height: 48px;
         }
 
         .todays-birthdays-widget .fi-ta-text {
