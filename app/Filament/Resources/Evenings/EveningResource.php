@@ -29,7 +29,7 @@ class EveningResource extends Resource
     protected static UnitEnum|string|null $navigationGroup = 'Клуб';
     protected static ?int $navigationSort = 2;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
     public static function form(Schema $schema): Schema
     {
