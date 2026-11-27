@@ -23,6 +23,11 @@ class PhoneInput
                         '7' => '+7',
                     ])
                     ->default('375')
+                    ->afterStateHydrated(function (Select $component, ?string $state): void {
+                        if (blank($state)) {
+                            $component->state('375');
+                        }
+                    })
                     ->native(false)
                     ->selectablePlaceholder(false)
                     ->live()
