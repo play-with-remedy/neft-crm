@@ -88,6 +88,51 @@ class SeasonalCaseServiceTest extends TestCase
         $this->assertSame(2, AutumnCampaign::count());
     }
 
+    public function test_autumn_keeps_the_sixth_visit_as_a_reward_even_if_a_price_was_entered(): void
+    {
+        $visits = array_map(fn (int $day): EveningParticipant => $this->visit(sprintf('2026-11-%02d', $day)), range(1, 7));
+        $campaign = AutumnCampaign::where('starts_at', '2026-09-01')->sole();
+        $cases = $campaign->cases()->orderBy('number')->get();
+
+        $this->assertCount(2, $cases);
+        $this->assertSame(5, $cases[0]->progress);
+        $this->assertSame('2026-11-05', $cases[0]->qualified_at->toDateString());
+        $this->assertSame('2026-11-06', $cases[0]->completed_at->toDateString());
+        $this->assertSame(AutumnCaseStatus::Completed, $cases[0]->status);
+        $this->assertTrue($visits[5]->fresh()->is_autumn_reward);
+        $this->assertSame('30.00', $visits[5]->fresh()->paid_amount);
+        $this->assertSame($cases[1]->id, $visits[6]->fresh()->autumn_case_id);
+        $this->assertSame(1, $visits[6]->fresh()->autumn_case_visit_number);
+        $this->assertSame('2026-11-07', $cases[1]->started_at->toDateString());
+        $this->assertSame('2026-11-30', $cases[1]->deadline_at->toDateString());
+    }
+
+    public function test_correcting_an_autumn_payment_moves_the_reward_and_rebuilds_the_following_case(): void
+    {
+        $visits = array_map(fn (int $day): EveningParticipant => $this->visit(sprintf('2026-11-%02d', $day)), range(1, 8));
+        $firstCaseId = $visits[0]->fresh()->autumn_case_id;
+        $nextCaseId = $visits[6]->fresh()->autumn_case_id;
+
+        $visits[2]->payments()->sole()->update(['amount' => 0]);
+
+        $this->assertNull($visits[2]->fresh()->autumn_case_id);
+        $this->assertFalse($visits[5]->fresh()->is_autumn_reward);
+        $this->assertSame($firstCaseId, $visits[5]->fresh()->autumn_case_id);
+        $this->assertSame(5, $visits[5]->fresh()->autumn_case_visit_number);
+        $this->assertTrue($visits[6]->fresh()->is_autumn_reward);
+        $this->assertSame($firstCaseId, $visits[6]->fresh()->autumn_case_id);
+        $this->assertSame('2026-11-07', AutumnCase::findOrFail($firstCaseId)->completed_at->toDateString());
+        $this->assertSame($nextCaseId, $visits[7]->fresh()->autumn_case_id);
+        $this->assertSame(1, $visits[7]->fresh()->autumn_case_visit_number);
+
+        $visits[2]->payments()->sole()->update(['amount' => 30]);
+
+        $this->assertTrue($visits[5]->fresh()->is_autumn_reward);
+        $this->assertSame($nextCaseId, $visits[6]->fresh()->autumn_case_id);
+        $this->assertSame(1, $visits[6]->fresh()->autumn_case_visit_number);
+        $this->assertSame(2, $visits[7]->fresh()->autumn_case_visit_number);
+    }
+
     public function test_default_season_changes_on_december_first(): void
     {
         $this->travelTo(now()->setDate(2026, 11, 30));
