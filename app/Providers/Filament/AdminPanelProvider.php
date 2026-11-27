@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.date-picker-styles'))
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.select-styles'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.evening-payment-styles'))
             ->renderHook(PanelsRenderHook::STYLES_AFTER, fn () => view('filament.partials.location-hall-styles'), scopes: ListLocations::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

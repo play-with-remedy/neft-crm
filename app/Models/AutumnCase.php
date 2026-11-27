@@ -51,7 +51,7 @@ class AutumnCase extends Model
 
     public function getStatusAttribute(): AutumnCaseStatus
     {
-        return $this->statusAt(today());
+        return $this->statusAt(Evening::clubNow()->startOfDay());
     }
 
     public function statusAt(CarbonInterface $date): AutumnCaseStatus

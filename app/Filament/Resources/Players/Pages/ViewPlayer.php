@@ -11,6 +11,7 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewPlayer extends ViewRecord
 {
     protected static string $resource = PlayerResource::class;
+
     protected static ?string $breadcrumb = 'Детали';
 
     protected function getHeaderActions(): array
@@ -24,8 +25,8 @@ class ViewPlayer extends ViewRecord
                 ->url(fn (): string => PlayerResource::getUrl('statistics', ['record' => $this->record])),
 
             Action::make('autumn_case')
-                ->label('Осеннее дело')
-                ->icon('/images/autumn-leaf.svg?v=3')
+                ->label('Сезонные дела')
+                ->icon('heroicon-o-gift')
                 ->color('warning')
                 ->url(fn (): string => PlayerResource::getUrl('autumn-case', ['record' => $this->record])),
 

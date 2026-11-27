@@ -10,7 +10,6 @@ use App\Models\Evening;
 use App\Models\EveningParticipant;
 use App\Models\PaymentType;
 use App\Models\Player;
-use App\Services\AutumnCaseService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -30,6 +29,7 @@ class AutumnCaseServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->travelTo(CarbonImmutable::parse('2026-09-22'));
 
         $this->campaign = AutumnCampaign::query()->updateOrCreate(
             [
@@ -266,7 +266,8 @@ class AutumnCaseServiceTest extends TestCase
         );
 
         $outsideVisit = $this->visit('2026-12-01');
-        $this->assertNull($outsideVisit->fresh()->autumn_case_id);
+        $this->assertNotSame($this->campaign->id, $outsideVisit->fresh()->autumnCase->autumn_campaign_id);
+        $this->assertSame(1, $this->campaign->cases()->count());
     }
 
     public function test_unredeemed_reward_expires_after_campaign(): void

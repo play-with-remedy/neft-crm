@@ -114,6 +114,7 @@ class Schedule extends Page implements HasTable
                         ->columns(['default' => 1, 'sm' => 2]))
                     ->authorize(fn (Evening $record): bool => EveningResource::canEdit($record)),
                 DeleteAction::make()->label('Удалить')
+                    ->databaseTransaction()
                     ->iconButton()
                     ->icon('heroicon-o-trash')
                     ->tooltip('Удалить вечер')

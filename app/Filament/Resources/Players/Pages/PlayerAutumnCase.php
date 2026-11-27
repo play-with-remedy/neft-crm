@@ -5,22 +5,32 @@ namespace App\Filament\Resources\Players\Pages;
 use App\Enums\AutumnCaseStatus;
 use App\Filament\Resources\Players\PlayerResource;
 use App\Support\FilamentAccess;
+use App\Support\SelectsSeasonalCampaign;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 
 class PlayerAutumnCase extends ViewRecord
 {
+    use SelectsSeasonalCampaign;
+
     protected static string $resource = PlayerResource::class;
 
-    protected static ?string $breadcrumb = 'Осеннее дело';
+    protected static ?string $breadcrumb = 'Сезонные дела';
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+        $this->selectDefaultCampaign();
+    }
 
     public function getTitle(): string
     {
-        return 'Осеннее дело: ' . $this->record->nickname;
+        return 'Сезонные дела: '.$this->record->nickname;
     }
 
     protected function getHeaderActions(): array
@@ -43,15 +53,17 @@ class PlayerAutumnCase extends ViewRecord
 
     public function content(Schema $schema): Schema
     {
-        $latestCaseId = $this->record->autumnCases()->max('id');
+        $latestCaseId = $this->record->autumnCases()->where('autumn_campaign_id', $this->campaignId)->max('id');
 
         return $schema->components([
+            View::make('filament.partials.seasonal-campaign-select'),
             Section::make('История дел')
-                ->description('Актуальное дело показано первым')
+                ->description('Дела выбранного сезона. Актуальное дело показано первым.')
                 ->schema([
                     RepeatableEntry::make('autumn_case_history')
                         ->hiddenLabel()
                         ->getStateUsing(fn () => $this->record->autumnCases()
+                            ->where('autumn_campaign_id', $this->campaignId)
                             ->with([
                                 'campaign',
                                 'participations' => fn ($query) => $query
@@ -63,16 +75,17 @@ class PlayerAutumnCase extends ViewRecord
                                     ->orderByDesc('evening_participants.id')
                                     ->select('evening_participants.*'),
                             ])
-                            ->orderByDesc('id')
+                            ->orderByDesc('number')
                             ->get())
+                        ->placeholder('В этом сезоне дел пока нет')
                         ->schema([
-                            Section::make(fn ($record): string => 'Дело № ' . ($record?->number ?? '—'))
+                            Section::make(fn ($record): string => 'Дело № '.($record?->number ?? '—'))
                                 ->description(fn ($record): string => $record
                                     ? $record->started_at->format('d.m.Y')
-                                        . '–'
-                                        . ($record->qualified_at ?? $record->deadline_at)->format('d.m.Y')
+                                        .'–'
+                                        .($record->qualified_at ?? $record->deadline_at)->format('d.m.Y')
                                     : '')
-                                ->icon('/images/autumn-leaf.svg?v=3')
+                                ->icon('heroicon-o-gift')
                                 ->schema([
                                     TextEntry::make('number')
                                         ->label('Номер дела')
@@ -89,7 +102,7 @@ class PlayerAutumnCase extends ViewRecord
 
                                     TextEntry::make('progress')
                                         ->label('Прогресс')
-                                        ->formatStateUsing(fn ($state): string => "{$state} из 5"),
+                                        ->formatStateUsing(fn ($state, $record): string => "{$state} из {$record->campaign->required_visits}"),
 
                                     TextEntry::make('started_at')
                                         ->label('Открыто')
@@ -110,7 +123,7 @@ class PlayerAutumnCase extends ViewRecord
                                                 ->label('Посещение')
                                                 ->state(fn ($record): string => $record->is_autumn_reward
                                                     ? 'Наградное'
-                                                    : 'Визит № ' . $record->autumn_case_visit_number)
+                                                    : 'Визит № '.$record->autumn_case_visit_number)
                                                 ->badge()
                                                 ->color(fn ($record): string => $record->is_autumn_reward
                                                     ? 'success'
@@ -128,7 +141,7 @@ class PlayerAutumnCase extends ViewRecord
                                                     2,
                                                     ',',
                                                     ' ',
-                                                ) . ' BYN'),
+                                                ).' BYN'),
                                         ])
                                         ->columns(4)
                                         ->columnSpanFull(),

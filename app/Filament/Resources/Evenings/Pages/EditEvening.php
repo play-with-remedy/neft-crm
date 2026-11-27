@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Evenings\Pages;
 
 use App\Filament\Resources\Evenings\EveningResource;
+use App\Services\SeasonalCaseService;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
@@ -15,12 +16,18 @@ class EditEvening extends EditRecord
 
     protected static ?string $breadcrumb = 'Редактировать';
 
+    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
+    {
+        app(SeasonalCaseService::class)->batch(fn () => parent::save($shouldRedirect, $shouldSendSavedNotification));
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             ViewAction::make()
                 ->label('Детали'),
             DeleteAction::make()
+                ->databaseTransaction()
                 ->label('Удалить')
                 ->modalHeading('Удаление вечера')
                 ->modalDescription('Вы уверены, что хотите удалить вечер?')

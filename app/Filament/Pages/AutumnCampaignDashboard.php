@@ -6,7 +6,9 @@ use App\Enums\AutumnCaseStatus;
 use App\Filament\Resources\Players\PlayerResource;
 use App\Models\AutumnCampaign;
 use App\Models\AutumnCase;
+use App\Models\Evening;
 use App\Models\EveningParticipant;
+use App\Support\SelectsSeasonalCampaign;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -20,33 +22,30 @@ use UnitEnum;
 class AutumnCampaignDashboard extends Page implements HasTable
 {
     use InteractsWithTable;
+    use SelectsSeasonalCampaign;
 
-    protected static string | BackedEnum | null $navigationIcon = '/images/autumn-leaf.svg?v=3';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-gift';
 
     protected static ?string $slug = 'autumn-campaign';
 
-    protected static ?string $navigationLabel = 'Осеннее дело';
+    protected static ?string $navigationLabel = 'Сезонные дела';
 
-    protected static ?string $title = 'Осеннее дело';
+    protected static ?string $title = 'Сезонные дела';
 
-    protected static UnitEnum | string | null $navigationGroup = 'Клуб';
+    protected static UnitEnum|string|null $navigationGroup = 'Клуб';
 
     protected static ?int $navigationSort = 5;
 
     protected string $view = 'filament.pages.autumn-campaign-dashboard';
 
-    public ?int $campaignId = null;
-
     public function mount(): void
     {
-        $this->campaignId = AutumnCampaign::query()
-            ->orderByRaw('CASE WHEN starts_at <= ? AND ends_at >= ? THEN 0 WHEN starts_at > ? THEN 1 ELSE 2 END', [
-                today()->toDateString(),
-                today()->toDateString(),
-                today()->toDateString(),
-            ])
-            ->orderByDesc('starts_at')
-            ->value('id');
+        $this->selectDefaultCampaign();
+    }
+
+    public function updatedCampaignId(): void
+    {
+        $this->resetPage();
     }
 
     public function table(Table $table): Table
@@ -54,7 +53,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
         return $table
             ->query(fn (): Builder => AutumnCase::query()
                 ->where('autumn_campaign_id', $this->campaignId ?? 0)
-                ->with(['player:id,nickname', 'campaign:id,name,ends_at'])
+                ->with(['player:id,nickname', 'campaign:id,name,ends_at,required_visits'])
                 ->withCount([
                     'participations as progress' => fn (Builder $query): Builder => $query
                         ->where('is_autumn_reward', false),
@@ -76,7 +75,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
                     ->searchable()
                     ->url(fn (AutumnCase $record): string => PlayerResource::getUrl(
                         'autumn-case',
-                        ['record' => $record->player_id],
+                        ['record' => $record->player_id, 'campaign' => $record->autumn_campaign_id],
                     )),
 
                 TextColumn::make('number')
@@ -92,8 +91,8 @@ class AutumnCampaignDashboard extends Page implements HasTable
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         $campaignEndsAt = AutumnCampaign::query()
                             ->whereKey($this->campaignId)
-                            ->value('ends_at') ?? today()->toDateString();
-                        $today = today()->toDateString();
+                            ->value('ends_at') ?? Evening::clubNow()->toDateString();
+                        $today = Evening::clubNow()->toDateString();
 
                         return $query->orderByRaw(
                             "CASE
@@ -109,7 +108,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
 
                 TextColumn::make('progress')
                     ->label('Прогресс')
-                    ->formatStateUsing(fn ($state): string => min((int) $state, 5) . ' из 5')
+                    ->formatStateUsing(fn ($state, AutumnCase $record): string => min((int) $state, $record->campaign->required_visits).' из '.$record->campaign->required_visits)
                     ->sortable(),
 
                 TextColumn::make('started_at')
@@ -128,9 +127,9 @@ class AutumnCampaignDashboard extends Page implements HasTable
                             return '—';
                         }
 
-                        $days = today()->diffInDays($record->deadline_at, false);
+                        $days = (int) Evening::clubNow()->startOfDay()->diffInDays($record->deadline_at, false);
 
-                        return $days < 0 ? 'Просрочено' : $days . ' дн.';
+                        return $days < 0 ? 'Просрочено' : $days.' дн.';
                     }),
 
                 TextColumn::make('last_visit_at')
@@ -154,7 +153,7 @@ class AutumnCampaignDashboard extends Page implements HasTable
                             return $query;
                         }
 
-                        $today = today()->toDateString();
+                        $today = Evening::clubNow()->toDateString();
                         $campaignEndsAt = AutumnCampaign::query()
                             ->whereKey($this->campaignId)
                             ->value('ends_at') ?? $today;
@@ -186,11 +185,11 @@ class AutumnCampaignDashboard extends Page implements HasTable
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->url(fn (AutumnCase $record): string => PlayerResource::getUrl(
                         'autumn-case',
-                        ['record' => $record->player_id],
+                        ['record' => $record->player_id, 'campaign' => $record->autumn_campaign_id],
                     )),
             ])
             ->defaultSort(function (Builder $query): Builder {
-                $today = today()->toDateString();
+                $today = Evening::clubNow()->toDateString();
                 $campaignEndsAt = AutumnCampaign::query()
                     ->whereKey($this->campaignId)
                     ->value('ends_at') ?? $today;
@@ -219,8 +218,8 @@ class AutumnCampaignDashboard extends Page implements HasTable
 
         $query = AutumnCase::query()
             ->where('autumn_campaign_id', $this->campaignId ?? 0);
-        $today = today()->toDateString();
-        $campaignHasEnded = $campaign?->ends_at?->lt(today()) ?? false;
+        $today = Evening::clubNow()->toDateString();
+        $campaignHasEnded = $campaign !== null && $campaign->ends_at->toDateString() < $today;
 
         $expired = (clone $query)
             ->whereNull('qualified_at')

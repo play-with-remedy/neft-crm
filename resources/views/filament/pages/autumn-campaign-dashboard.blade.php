@@ -16,41 +16,117 @@
             margin-bottom: 24px;
         }
 
-        .autumn-summary__header {
+        .seasonal-overview {
             display: flex;
             align-items: center;
-            margin-bottom: 16px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #fff;
+            color: #111827;
         }
 
-        .autumn-summary__period {
-            display: inline-flex;
+        .seasonal-overview__header {
+            display: grid;
+            gap: 14px;
+            width: 100%;
+            max-width: 360px;
+            min-width: 0;
+        }
+
+        .seasonal-overview__dates {
+            display: flex;
             align-items: center;
             gap: 8px;
-            min-height: 36px;
-            padding: 7px 12px;
-            border: 1px solid rgba(251, 146, 60, 0.24);
-            border-radius: 10px;
-            background: rgba(251, 146, 60, 0.08);
-            color: #d4d4d8;
+            color: #6b7280;
             font-size: 13px;
-            font-weight: 600;
+            line-height: 1.5;
         }
 
-        .autumn-summary__period svg {
+        .seasonal-overview__dates svg {
             width: 18px;
             height: 18px;
             flex: 0 0 auto;
-            color: #fb923c;
+            color: #9ca3af;
         }
 
-        .autumn-summary__period-label {
-            color: #a1a1aa;
-            font-weight: 500;
+        .seasonal-overview__rules {
+            display: flex;
+            align-items: center;
         }
 
-        .autumn-summary__empty-note {
-            color: #a1a1aa;
+        .seasonal-overview__reward {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .seasonal-overview__gift {
+            display: grid;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            flex: 0 0 auto;
+            border-radius: 10px;
+            background: #fffbeb;
+            color: #b45309;
+        }
+
+        .seasonal-overview__gift svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .seasonal-overview__title {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .seasonal-overview__subtitle {
+            margin-top: 2px;
+            color: #6b7280;
             font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .seasonal-overview__note {
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .dark .seasonal-overview {
+            border-color: rgba(255, 255, 255, 0.10);
+            background: #18181b;
+            color: #f4f4f5;
+        }
+
+        .dark :is(.seasonal-overview__dates, .seasonal-overview__subtitle, .seasonal-overview__note) {
+            color: #a1a1aa;
+        }
+
+        .dark .seasonal-overview__gift {
+            background: rgba(245, 158, 11, 0.10);
+            color: #fbbf24;
+        }
+
+        @media (max-width: 640px) {
+            .seasonal-overview {
+                gap: 16px;
+                padding: 16px;
+            }
+
+            .seasonal-overview__header,
+            .seasonal-overview__header > * {
+                width: 100%;
+                max-width: none;
+            }
         }
 
         .autumn-summary__grid {
@@ -97,19 +173,32 @@
     </style>
 
     <div class="autumn-summary">
-        <div class="autumn-summary__header">
+        <section class="seasonal-overview" aria-label="Сезон и условия акции">
+            <div class="seasonal-overview__header">
+                @include('filament.partials.seasonal-campaign-select')
+
+                @if ($summary['campaign'])
+                    <div class="seasonal-overview__dates">
+                        <x-heroicon-o-calendar-days />
+                        <span>{{ $summary['campaign']->starts_at->format('d.m.Y') }} — {{ $summary['campaign']->ends_at->format('d.m.Y') }}</span>
+                    </div>
+                @endif
+            </div>
+
             @if ($summary['campaign'])
-                <div class="autumn-summary__period">
-                    <x-heroicon-o-calendar-days />
-                    <span class="autumn-summary__period-label">Период</span>
-                    <span>{{ $summary['campaign']->starts_at->format('d.m.Y') }} — {{ $summary['campaign']->ends_at->format('d.m.Y') }}</span>
+                <div class="seasonal-overview__rules">
+                    <div class="seasonal-overview__reward">
+                        <span class="seasonal-overview__gift" aria-hidden="true"><x-heroicon-o-gift /></span>
+                        <div>
+                            <div class="seasonal-overview__title">Бесплатный вечер в подарок</div>
+                            <div class="seasonal-overview__subtitle">После {{ $summary['campaign']->required_visits }} зачётных посещений</div>
+                        </div>
+                    </div>
                 </div>
             @else
-                <div class="autumn-summary__empty-note">
-                    Создайте кампанию, чтобы начать учитывать посещения
-                </div>
+                <p class="seasonal-overview__note">Создайте кампанию, чтобы начать учитывать посещения.</p>
             @endif
-        </div>
+        </section>
 
         <div class="autumn-summary__grid">
             @foreach ($items as $item)

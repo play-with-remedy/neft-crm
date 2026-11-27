@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AutumnCampaign;
 use App\Models\AutumnCase;
 use App\Models\EveningParticipant;
-use App\Services\AutumnCaseService;
+use App\Services\SeasonalCaseService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +18,7 @@ class RepairAutumnCasesPaymentThreshold extends Command
 
     protected $description = 'Пересобирает осенние дела с учетом минимальной оплаты 30 BYN';
 
-    public function handle(AutumnCaseService $service): int
+    public function handle(SeasonalCaseService $service): int
     {
         if (app()->isProduction() && ! $this->option('dry-run') && ! $this->option('force')) {
             $this->error('В production необходимо добавить --force. Сначала рекомендуется выполнить --dry-run.');
@@ -49,7 +49,7 @@ class RepairAutumnCasesPaymentThreshold extends Command
                 ->whereIn('autumn_case_id', $caseIds)
                 ->where('is_autumn_reward', false);
             $invalidProgressCount = (clone $linkedProgress)
-                ->where('paid_amount', '<', AutumnCaseService::MINIMUM_QUALIFYING_PAYMENT)
+                ->where('paid_amount', '<', $campaign->minimum_qualifying_payment)
                 ->count();
             $linkedCount = EveningParticipant::query()
                 ->whereIn('autumn_case_id', $caseIds)
@@ -59,45 +59,29 @@ class RepairAutumnCasesPaymentThreshold extends Command
             $this->info("Кампания #{$campaign->getKey()}: {$campaign->name}");
             $this->line("Дел до пересборки: {$caseIds->count()}");
             $this->line("Связанных посещений: {$linkedCount}");
-            $this->line("Посещений с оплатой ниже 30 BYN в прогрессе: {$invalidProgressCount}");
+            $this->line("Посещений с оплатой ниже {$campaign->minimum_qualifying_payment} BYN в прогрессе: {$invalidProgressCount}");
 
             if ($this->option('dry-run')) {
                 continue;
             }
 
-            $result = DB::transaction(function () use ($campaign, $caseIds, $service): array {
-                AutumnCampaign::query()->whereKey($campaign->getKey())->lockForUpdate()->firstOrFail();
-
-                $participationIds = EveningParticipant::query()
+            $result = DB::transaction(function () use ($campaign, $service): array {
+                $participations = EveningParticipant::query()
                     ->join('evenings', 'evenings.id', '=', 'evening_participants.evening_id')
                     ->whereBetween('evenings.played_at', [
                         $campaign->starts_at->copy()->startOfDay(),
                         $campaign->ends_at->copy()->endOfDay(),
                     ])
-                    ->orderBy('evenings.played_at')
-                    ->orderBy('evening_participants.id')
-                    ->pluck('evening_participants.id');
+                    ->get(['evening_participants.id', 'evening_participants.player_id']);
+                $playerIds = $participations->pluck('player_id')
+                    ->merge($campaign->cases()->pluck('player_id'))->unique()->sort();
 
-                EveningParticipant::query()
-                    ->whereIn('autumn_case_id', $caseIds)
-                    ->update([
-                        'autumn_case_id' => null,
-                        'autumn_case_visit_number' => null,
-                        'is_autumn_reward' => false,
-                    ]);
-
-                AutumnCase::query()
-                    ->where('autumn_campaign_id', $campaign->getKey())
-                    ->delete();
-
-                foreach ($participationIds as $participationId) {
-                    $service->processParticipation(
-                        EveningParticipant::query()->findOrFail($participationId),
-                    );
+                foreach ($playerIds as $playerId) {
+                    $service->recalculatePlayerCampaign((int) $playerId, $campaign->id);
                 }
 
                 return [
-                    'participations' => $participationIds->count(),
+                    'participations' => $participations->count(),
                     'cases' => AutumnCase::query()
                         ->where('autumn_campaign_id', $campaign->getKey())
                         ->count(),
